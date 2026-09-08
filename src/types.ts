@@ -53,11 +53,20 @@ export interface ParallaxHeaderHandle {
 
 export interface ParallaxHeaderProps {
   // ── Header ──────────────────────────────────────────────────────────────
-  /** The expanded hero content. */
+  /**
+   * The expanded hero content. Give its root `flex: 1` if you set a
+   * `headerHeight` taller than the content itself — flexbox stretches a child
+   * across, never down, so a natural-height root leaves the rest of the hero
+   * bare and a child under `absoluteFill` (a `HeaderCarousel`) stops at the
+   * content's height rather than the hero's.
+   */
   header?: ReactNode;
   /**
-   * Expanded hero height. With `autoHeight` this is a floor, not a fixed size.
-   * @default 300
+   * Expanded hero height. With `autoHeight` this is a floor, not a fixed size
+   * — and omitting it there means no floor at all: the hero is exactly what
+   * its content measures, so a hero-filling child (a `HeaderCarousel` under
+   * `absoluteFill`) is sized by the content too.
+   * @default 300, and no floor with `autoHeight`
    */
   headerHeight?: number;
   /**

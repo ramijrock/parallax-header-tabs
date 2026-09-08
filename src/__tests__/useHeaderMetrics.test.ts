@@ -95,6 +95,39 @@ describe('useHeaderMetrics', () => {
     expect(result.current).toBe(first);
   });
 
+  it('drops the floor entirely when no height is configured', () => {
+    const { result } = renderHook(() =>
+      useHeaderMetrics({ ...base, headerHeight: undefined, autoHeight: true })
+    );
+    // Unmeasured it still has to occupy something sensible.
+    expect(result.current.heroHeight).toBe(300);
+    act(() => result.current.onHeaderLayout(layout(120)));
+    // Measured, the content decides — 120, not a 300 nobody asked for. A hero
+    // child under `absoluteFill` then covers exactly the hero.
+    expect(result.current.heroHeight).toBe(120);
+    expect(result.current.heroMinHeight).toBe(0);
+    expect(result.current.contentPaddingTop).toBe(168);
+  });
+
+  it('keeps the configured floor as the wrapper minimum, measured or not', () => {
+    const { result } = renderHook(() =>
+      useHeaderMetrics({ ...base, autoHeight: true })
+    );
+    expect(result.current.heroMinHeight).toBe(300);
+    // Never the measured height: as a minimum it would latch the hero tall and
+    // stop the wrapper shrinking again.
+    act(() => result.current.onHeaderLayout(layout(460)));
+    expect(result.current.heroMinHeight).toBe(300);
+    act(() => result.current.onHeaderLayout(layout(280)));
+    expect(result.current.heroHeight).toBe(300);
+    expect(result.current.heroMinHeight).toBe(300);
+  });
+
+  it('fills a fixed hero with its content wrapper', () => {
+    const { result } = renderHook(() => useHeaderMetrics(base));
+    expect(result.current.heroMinHeight).toBe(result.current.heroHeight);
+  });
+
   it('ignores a zero-height measurement', () => {
     const { result } = renderHook(() =>
       useHeaderMetrics({ ...base, autoHeight: true })

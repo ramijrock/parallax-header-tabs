@@ -148,7 +148,11 @@ export default function App() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: '#f4f5f7' },
-  hero: { minHeight: 280, justifyContent: 'flex-end' },
+  // `flex: 1` is what makes the hero fill a `headerHeight` taller than its own
+  // content — without it the carousel stops at the content's height and the
+  // rest of the hero is bare background. `minHeight` still floors it when
+  // `headerHeight` is left off and `autoHeight` sizes from the content.
+  hero: { flex: 1, minHeight: 280, justifyContent: 'flex-end' },
   heroScrim: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.4)',

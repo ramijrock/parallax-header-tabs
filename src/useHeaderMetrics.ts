@@ -1,8 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 
+/** Fallback hero height: no `headerHeight` given and nothing measured yet. */
+export const DEFAULT_HEADER_HEIGHT = 300;
+
 export interface HeaderMetricsInput {
-  headerHeight: number;
+  /** Omitted means "no opinion": a floor of zero once `autoHeight` measures. */
+  headerHeight?: number;
   autoHeight: boolean;
   stickyTopInset: number;
   tabBarHeight: number;
@@ -14,6 +18,13 @@ export interface HeaderMetricsInput {
 export interface HeaderMetrics {
   /** Expanded hero height — the measured height when it exceeds the floor. */
   heroHeight: number;
+  /**
+   * Floor for the measured wrapper, so hero content fills a hero that is
+   * taller than it. Deliberately the *configured* floor and never the current
+   * `heroHeight`: feeding a measurement back in as a minimum would latch the
+   * hero at its tallest and stop it shrinking again.
+   */
+  heroMinHeight: number;
   /**
    * How far the body scrolls before the tab bar pins. Everything else is a
    * function of this, which is what keeps the bars, the hero and the content
@@ -68,15 +79,20 @@ export const useHeaderMetrics = ({
   );
 
   return useMemo(() => {
+    // With `autoHeight` on, an omitted `headerHeight` is a floor of zero — the
+    // hero is then whatever its content measures, so a hero-filling child (a
+    // carousel under `absoluteFill`, say) is sized by the content too rather
+    // than being stranded inside a 300pt default nobody asked for.
+    const floor = headerHeight ?? (autoHeight ? 0 : DEFAULT_HEADER_HEIGHT);
+    const configured = headerHeight ?? DEFAULT_HEADER_HEIGHT;
     const heroHeight =
-      autoHeight && measured != null
-        ? Math.max(headerHeight, measured)
-        : headerHeight;
+      autoHeight && measured != null ? Math.max(floor, measured) : configured;
     const subTabHeight = hasSubTabs ? tabBarHeight : 0;
     const pinnedTop = stickyTopInset + bannerHeight;
 
     return {
       heroHeight,
+      heroMinHeight: floor,
       collapseDistance: Math.max(0, heroHeight - pinnedTop),
       tabBarTop: heroHeight,
       pinnedTop,

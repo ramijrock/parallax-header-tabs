@@ -71,65 +71,91 @@ Set `autoHeight` and the hero is measured instead: the configured
 value. That is the whole answer to "the tag row is clipped on tablets" — no
 per-screen constants, and it works on phones too.
 
+Leave `headerHeight` off as well and there is no floor: the hero is exactly
+what its content measures. That is the one to use when the hero is a
+`HeaderCarousel` under `absoluteFill` — it takes the content's height rather
+than being stranded inside a default nobody chose.
+
+Set a `headerHeight` taller than the hero content and give the hero's root
+`flex: 1`:
+
+```tsx
+<ParallaxHeader
+  headerHeight={450}
+  autoHeight
+  header={
+    <View style={{ flex: 1, minHeight: 280, justifyContent: 'flex-end' }}>
+      <HeaderCarousel images={gallery} style={StyleSheet.absoluteFill} />
+      {/* … */}
+    </View>
+  }
+/>
+```
+
+Flexbox stretches a child across but never down, so without `flex: 1` the
+root keeps its own natural height: the carousel stops there and the rest of
+the 450 is bare background. `minHeight` still floors it for the no-`headerHeight`
+case above.
+
 ## Props
 
 ### Header
 
-| Prop | Type | Default | |
-|---|---|---|---|
-| `header` | `ReactNode` | — | Expanded hero content |
-| `headerHeight` | `number` | `300` | Hero height, or its floor with `autoHeight` |
-| `autoHeight` | `boolean` | `false` | Measure the hero and grow past `headerHeight` |
-| `parallaxFactor` | `number` | `0.5` | `0` pins the hero, `1` scrolls it at full speed |
-| `stickyTopInset` | `number` | `0` | Where the collapsed chrome rests — your safe area + nav bar |
-| `tabBarHeight` | `number` | `48` | |
+| Prop             | Type        | Default |                                                                          |
+| ---------------- | ----------- | ------- | ------------------------------------------------------------------------ |
+| `header`         | `ReactNode` | —       | Expanded hero content                                                    |
+| `headerHeight`   | `number`    | `300`   | Hero height, or its floor with `autoHeight` — omit it there for no floor |
+| `autoHeight`     | `boolean`   | `false` | Measure the hero and grow past `headerHeight`                            |
+| `parallaxFactor` | `number`    | `0.5`   | `0` pins the hero, `1` scrolls it at full speed                          |
+| `stickyTopInset` | `number`    | `0`     | Where the collapsed chrome rests — your safe area + nav bar              |
+| `tabBarHeight`   | `number`    | `48`    |                                                                          |
 
 ### Tabs
 
-| Prop | Type | |
-|---|---|---|
-| `tabs` | `TabItem[]` | `{ key, title, icon?, activeIcon?, data? }` |
-| `activeTabKey` | `string` | Controlled selection |
-| `defaultTabKey` | `string` | Initial selection when uncontrolled |
-| `onTabChange` | `(tab, index) => void` | |
-| `subTabs` / `activeSubTabKey` / `defaultSubTabKey` / `onSubTabChange` | | Same shape, second row |
+| Prop                                                                  | Type                   |                                             |
+| --------------------------------------------------------------------- | ---------------------- | ------------------------------------------- |
+| `tabs`                                                                | `TabItem[]`            | `{ key, title, icon?, activeIcon?, data? }` |
+| `activeTabKey`                                                        | `string`               | Controlled selection                        |
+| `defaultTabKey`                                                       | `string`               | Initial selection when uncontrolled         |
+| `onTabChange`                                                         | `(tab, index) => void` |                                             |
+| `subTabs` / `activeSubTabKey` / `defaultSubTabKey` / `onSubTabChange` |                        | Same shape, second row                      |
 
 ### Body and chrome
 
-| Prop | Type | |
-|---|---|---|
-| `children` | `ReactNode` | Scrolling body |
-| `footer` | `ReactNode` | Pinned above the scroll view |
-| `title` | `string` | Shown in the collapsed banner |
-| `bannerHeight` | `number` | Banner height, `48` by default. The pinned tab bar sits directly beneath it |
-| `renderBanner` | `() => ReactNode` | Replaces the banner body |
-| `BannerBackground` | `ComponentType` | Pass Expo's `BlurView` for frosted glass |
-| `onBannerVisibilityChange` | `(visible) => void` | Fires on the crossing only |
-| `theme` | `Partial<ParallaxHeaderTheme>` | |
+| Prop                       | Type                           |                                                                             |
+| -------------------------- | ------------------------------ | --------------------------------------------------------------------------- |
+| `children`                 | `ReactNode`                    | Scrolling body                                                              |
+| `footer`                   | `ReactNode`                    | Pinned above the scroll view                                                |
+| `title`                    | `string`                       | Shown in the collapsed banner                                               |
+| `bannerHeight`             | `number`                       | Banner height, `48` by default. The pinned tab bar sits directly beneath it |
+| `renderBanner`             | `() => ReactNode`              | Replaces the banner body                                                    |
+| `BannerBackground`         | `ComponentType`                | Pass Expo's `BlurView` for frosted glass                                    |
+| `onBannerVisibilityChange` | `(visible) => void`            | Fires on the crossing only                                                  |
+| `theme`                    | `Partial<ParallaxHeaderTheme>` |                                                                             |
 
 ### Scrolling
 
-| Prop | Type | Default | |
-|---|---|---|---|
-| `onEndReached` | `() => void` | — | Once per approach, drag **or** momentum |
-| `onEndReachedThreshold` | `number` | `120` | px from the bottom |
-| `refreshing` / `onRefresh` | | | Pull to refresh, both platforms |
-| `onScroll` | `(y: number) => void` | | |
+| Prop                       | Type                  | Default |                                         |
+| -------------------------- | --------------------- | ------- | --------------------------------------- |
+| `onEndReached`             | `() => void`          | —       | Once per approach, drag **or** momentum |
+| `onEndReachedThreshold`    | `number`              | `120`   | px from the bottom                      |
+| `refreshing` / `onRefresh` |                       |         | Pull to refresh, both platforms         |
+| `onScroll`                 | `(y: number) => void` |         |                                         |
 
 ### Overflow sheet
 
-| Prop | Type | Default | |
-|---|---|---|---|
-| `overflowThreshold` | `number` | `4` | Show the list button past this many tabs |
-| `onTabsReorder` | `(tabs) => void` | — | Enables reordering; published on close |
-| `renderTabList` | render prop | — | Swap in your own list — drag and drop, say |
+| Prop                | Type             | Default |                                            |
+| ------------------- | ---------------- | ------- | ------------------------------------------ |
+| `overflowThreshold` | `number`         | `4`     | Show the list button past this many tabs   |
+| `onTabsReorder`     | `(tabs) => void` | —       | Enables reordering; published on close     |
+| `renderTabList`     | render prop      | —       | Swap in your own list — drag and drop, say |
 
 ### Ref
 
 ```ts
 ref.current?.setTab('medical');
 ref.current?.setSubTab('approved');
-ref.current?.scrollToTab('medical');   // centre it, keep the selection
+ref.current?.scrollToTab('medical'); // centre it, keep the selection
 ref.current?.scrollTo(400);
 ref.current?.scrollToTop();
 ```
@@ -157,26 +183,26 @@ import { HeaderCarousel, ParallaxHeader } from '@ramijd/parallax-header-tabs';
   }
 >
   {body}
-</ParallaxHeader>
+</ParallaxHeader>;
 ```
 
-| Prop | Type | Default | |
-|---|---|---|---|
-| `images` | `(string \| ImageSourcePropType)[]` | — | A URL string is accepted as is |
-| `height` | `number` | — | Omit to size from `style` |
-| `autoPlay` | `boolean` | `false` | |
-| `interval` | `number` | `4000` | ms each image is held |
-| `loop` | `boolean` | `true` | Wrap from the last image back to the first |
-| `initialIndex` | `number` | `0` | |
-| `onIndexChange` | `(index) => void` | — | On a settled slide, not mid-drag |
-| `showPagination` | `boolean` | `true` | Dots, hidden for a single image |
-| `maxDots` | `number` | `5` | Longer runs slide a window of this many |
-| `showCounter` | `boolean` | auto | The `3 / 12` pill; on once the images outnumber `maxDots` |
-| `dotColor` / `activeDotColor` | `string` | white-ish / white | |
-| `paginationStyle` | `ViewStyle` | — | Moves the dot row off the bottom centre |
-| `counterStyle` / `counterTextStyle` | style | — | The pill and its label |
-| `resizeMode` | `ImageProps['resizeMode']` | `'cover'` | |
-| `children` | `ReactNode` | — | Drawn over the images |
+| Prop                                | Type                                | Default           |                                                           |
+| ----------------------------------- | ----------------------------------- | ----------------- | --------------------------------------------------------- |
+| `images`                            | `(string \| ImageSourcePropType)[]` | —                 | A URL string is accepted as is                            |
+| `height`                            | `number`                            | —                 | Omit to size from `style`                                 |
+| `autoPlay`                          | `boolean`                           | `false`           |                                                           |
+| `interval`                          | `number`                            | `4000`            | ms each image is held                                     |
+| `loop`                              | `boolean`                           | `true`            | Wrap from the last image back to the first                |
+| `initialIndex`                      | `number`                            | `0`               |                                                           |
+| `onIndexChange`                     | `(index) => void`                   | —                 | On a settled slide, not mid-drag                          |
+| `showPagination`                    | `boolean`                           | `true`            | Dots, hidden for a single image                           |
+| `maxDots`                           | `number`                            | `5`               | Longer runs slide a window of this many                   |
+| `showCounter`                       | `boolean`                           | auto              | The `3 / 12` pill; on once the images outnumber `maxDots` |
+| `dotColor` / `activeDotColor`       | `string`                            | white-ish / white |                                                           |
+| `paginationStyle`                   | `ViewStyle`                         | —                 | Moves the dot row off the bottom centre                   |
+| `counterStyle` / `counterTextStyle` | style                               | —                 | The pill and its label                                    |
+| `resizeMode`                        | `ImageProps['resizeMode']`          | `'cover'`         |                                                           |
+| `children`                          | `ReactNode`                         | —                 | Drawn over the images                                     |
 
 Slide width comes from a measurement rather than `Dimensions`, so paging stays
 true in a padded hero, on a split screen and after a rotation. A drag suspends
@@ -209,8 +235,14 @@ import * as Haptics from 'expo-haptics';
 <ParallaxHeader
   BannerBackground={(p) => <BlurView intensity={80} tint="dark" {...p} />}
   onFeedback={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
-  tabs={[{ key: 'medical', title: 'Medical', icon: <Ionicons name="medkit" size={16} /> }]}
-/>
+  tabs={[
+    {
+      key: 'medical',
+      title: 'Medical',
+      icon: <Ionicons name="medkit" size={16} />,
+    },
+  ]}
+/>;
 ```
 
 Drag-and-drop reordering, if you want it, plugs into `renderTabList` — so
@@ -241,18 +273,18 @@ hero height. Check a screen once, then move it to the real API.
 
 Carried over from the component it replaces:
 
-| | |
-|---|---|
-| Tabs hidden once pinned | The banner and the pinned tab bar both came to rest at `stickyTopInset`, and the banner — drawn last — covered the tabs outright. The bar now pins at `stickyTopInset + bannerHeight`, and with no `title` and no `renderBanner` the banner reserves nothing and is not drawn at all. |
-| Banner never faded | `easing: () => 0.2` held the value flat for the full duration, then snapped. Now a real curve. |
-| Doubled tab callbacks | An identical `useEffect` appeared twice, so every trigger fired both. |
-| Sub-tab spacing | The sub-tab row measured its trailing gap against the **main** tab count. One shared `TabStrip` now, so the two cannot diverge. |
-| Selection fought itself | Parent-supplied `isSelected` was overwritten from internal state, which is why an imperative `jumpToTab` was needed at all. Selection is now controlled or uncontrolled, never both. |
-| Pagination missed slow scrolls | `onEndReached` hung off `onMomentumScrollEnd`, so a slow drag to the bottom paged nothing. Checked on scroll now, latched to fire once per approach. |
-| Off-centre tabs | Centring used a guessed per-tab width. Measured now, so it holds for any font, locale or padding. |
-| Reorder recycled wrong rows | Tabs were keyed by index while being drag-reorderable. Keyed by identity now. |
-| Crash on a missing callback | `onTabSelect` was called bare. Every callback is optional. |
-| Tablet header clipping | Two competing mechanisms — a `minHeaderContentHeight` prop and a `useFitHeaderHeight` hook that hand-mirrored a five-branch offset. One `autoHeight` prop, all devices. |
+|                                |                                                                                                                                                                                                                                                                                       |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tabs hidden once pinned        | The banner and the pinned tab bar both came to rest at `stickyTopInset`, and the banner — drawn last — covered the tabs outright. The bar now pins at `stickyTopInset + bannerHeight`, and with no `title` and no `renderBanner` the banner reserves nothing and is not drawn at all. |
+| Banner never faded             | `easing: () => 0.2` held the value flat for the full duration, then snapped. Now a real curve.                                                                                                                                                                                        |
+| Doubled tab callbacks          | An identical `useEffect` appeared twice, so every trigger fired both.                                                                                                                                                                                                                 |
+| Sub-tab spacing                | The sub-tab row measured its trailing gap against the **main** tab count. One shared `TabStrip` now, so the two cannot diverge.                                                                                                                                                       |
+| Selection fought itself        | Parent-supplied `isSelected` was overwritten from internal state, which is why an imperative `jumpToTab` was needed at all. Selection is now controlled or uncontrolled, never both.                                                                                                  |
+| Pagination missed slow scrolls | `onEndReached` hung off `onMomentumScrollEnd`, so a slow drag to the bottom paged nothing. Checked on scroll now, latched to fire once per approach.                                                                                                                                  |
+| Off-centre tabs                | Centring used a guessed per-tab width. Measured now, so it holds for any font, locale or padding.                                                                                                                                                                                     |
+| Reorder recycled wrong rows    | Tabs were keyed by index while being drag-reorderable. Keyed by identity now.                                                                                                                                                                                                         |
+| Crash on a missing callback    | `onTabSelect` was called bare. Every callback is optional.                                                                                                                                                                                                                            |
+| Tablet header clipping         | Two competing mechanisms — a `minHeaderContentHeight` prop and a `useFitHeaderHeight` hook that hand-mirrored a five-branch offset. One `autoHeight` prop, all devices.                                                                                                               |
 
 ## Development
 

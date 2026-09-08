@@ -41,7 +41,7 @@ export const ParallaxHeader = forwardRef<
   (
     {
       header,
-      headerHeight = 300,
+      headerHeight,
       autoHeight = false,
       parallaxFactor = 0.5,
       stickyTopInset = 0,
@@ -264,7 +264,15 @@ export const ParallaxHeader = forwardRef<
             },
           ]}
         >
-          <View onLayout={metrics.onHeaderLayout} collapsable={false}>
+          {/* Measured at its natural height, but never shorter than the
+              configured floor — so hero content that fills its parent (a
+              carousel under `absoluteFill`) covers the whole hero rather than
+              only the part its own content happens to occupy. */}
+          <View
+            onLayout={metrics.onHeaderLayout}
+            collapsable={false}
+            style={{ minHeight: metrics.heroMinHeight }}
+          >
             {header}
           </View>
         </Animated.View>
