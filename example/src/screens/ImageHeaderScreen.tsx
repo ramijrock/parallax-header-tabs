@@ -5,18 +5,18 @@ import { HeroCopy } from './HeroCopy';
 import { SpeciesFrame, type HeaderScreenProps } from './SpeciesFrame';
 
 /**
- * A fixed 450pt hero with the carousel under `absoluteFill`. `headerHeight` is
+ * A fixed 280pt hero with the carousel under `absoluteFill`. `headerHeight` is
  * the floor rather than the size: `autoHeight` still grows the hero if the copy
- * ever outruns 450. Out of flow, the images cannot report a height of their
+ * ever outruns 280. Out of flow, the images cannot report a height of their
  * own, so they are cropped to the hero — see `FittedImageHeaderScreen` for the
  * other way round.
  */
 export const ImageHeaderScreen = ({ onBack }: HeaderScreenProps) => (
   <SpeciesFrame
     onBack={onBack}
-    headerHeight={450}
+    headerHeight={280}
     header={
-      // `flexGrow` fills the 450 with the hero, which is what carries the
+      // `flexGrow` fills the 280 with the hero, which is what carries the
       // `absoluteFill` carousel down to the foot of the header. Never the
       // `flex: 1` shorthand — that sets `flexBasis: 0` too.
       <View style={styles.hero}>

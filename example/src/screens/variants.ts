@@ -10,7 +10,7 @@ export const CHOICES: {
     variant: 'image',
     title: 'With an image',
     detail:
-      'A 450pt hero carousel under `absoluteFill`. `headerHeight` is the floor and `autoHeight` grows past it when the content is taller.',
+      'A 280pt hero carousel under `absoluteFill`. `headerHeight` is the floor and `autoHeight` grows past it when the content is taller.',
   },
   {
     variant: 'fitted',
