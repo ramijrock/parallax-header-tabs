@@ -1,0 +1,10 @@
+export { BodyScreen } from './BodyScreen';
+export type { BodyScreenProps } from './BodyScreen';
+export { Card } from './Card';
+export { Diet } from './Diet';
+export { Housing } from './Housing';
+export { Medical } from './Medical';
+export { Overview } from './Overview';
+export { Population } from './Population';
+export { Taxonomy } from './Taxonomy';
+export { styles as bodyStyles } from './styles';

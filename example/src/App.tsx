@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -12,6 +12,7 @@ import {
   type ParallaxHeaderHandle,
   type TabItem,
 } from '@ramijd/parallax-header-tabs';
+import { BodyScreen } from './layout';
 
 const THEME = {
   background: '#f4f5f7',
@@ -47,31 +48,28 @@ export default function App() {
   const ref = useRef<ParallaxHeaderHandle>(null);
   const [tabs, setTabs] = useState(INITIAL_TABS);
   const [activeTab, setActiveTab] = useState('overview');
+  const [activeSubTab, setActiveSubTab] = useState('pending');
   const [rows, setRows] = useState(20);
   const [refreshing, setRefreshing] = useState(false);
   const [tagged, setTagged] = useState(false);
 
   const onEndReached = useCallback(() => {
+    // Every other body screen is a fixed length, so only this one pages.
+    if (activeTab !== 'population') return;
     setRows((n) => Math.min(n + 20, 120));
-  }, []);
+  }, [activeTab]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 900);
   }, []);
 
-  const body = useMemo(
-    () =>
-      Array.from({ length: rows }).map((_, i) => (
-        <View key={i} style={styles.row}>
-          <Text style={styles.rowTitle}>
-            {activeTab} · item {i + 1}
-          </Text>
-          <Text style={styles.rowMeta}>Scroll on to page in more</Text>
-        </View>
-      )),
-    [rows, activeTab]
-  );
+  const onTabChange = useCallback((tab: TabItem) => {
+    setActiveTab(tab.key);
+    // The scroll offset is shared by every body screen, so a short one opened
+    // after a long scroll would otherwise start below its own content.
+    ref.current?.scrollToTop(false);
+  }, []);
 
   return (
     <SafeAreaView style={styles.flex}>
@@ -80,14 +78,16 @@ export default function App() {
         theme={THEME}
         title="Panthera tigris"
         headerHeight={280}
-        // Grows past 280 when the tag row is on — every offset follows.
+        // Grows past 450 when the hero content outruns it — every offset follows.
         autoHeight
         parallaxFactor={0.5}
         stickyTopInset={0}
         tabs={tabs}
         activeTabKey={activeTab}
-        onTabChange={(tab) => setActiveTab(tab.key)}
+        onTabChange={onTabChange}
         subTabs={activeTab === 'medical' ? SUB_TABS : undefined}
+        activeSubTabKey={activeSubTab}
+        onSubTabChange={(tab) => setActiveSubTab(tab.key)}
         onTabsReorder={setTabs}
         onEndReached={onEndReached}
         refreshing={refreshing}
@@ -140,7 +140,9 @@ export default function App() {
           </TouchableOpacity>
         }
       >
-        {body}
+        {/* The body is plain `children` — one screen per tab, all of them in
+            `src/layout`. */}
+        <BodyScreen tab={activeTab} subTab={activeSubTab} rows={rows} />
       </ParallaxHeader>
     </SafeAreaView>
   );
@@ -182,15 +184,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tagText: { color: '#fff', fontSize: 12 },
-  row: {
-    backgroundColor: '#fff',
-    marginHorizontal: 12,
-    marginTop: 8,
-    padding: 14,
-    borderRadius: 10,
-  },
-  rowTitle: { fontSize: 15, fontWeight: '600', color: '#111827' },
-  rowMeta: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
   fab: {
     alignSelf: 'flex-end',
     margin: 20,
