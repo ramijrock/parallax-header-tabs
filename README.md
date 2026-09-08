@@ -97,6 +97,28 @@ root keeps its own natural height: the carousel stops there and the rest of
 the 450 is bare background. `minHeight` still floors it for the no-`headerHeight`
 case above.
 
+### Controls that outlive the collapse
+
+`headerLeft` and `headerRight` sit on the top strip — the band the collapsed
+banner occupies, `stickyTopInset + bannerHeight` tall. They are drawn above
+both the hero and the banner and never move, so a back button stays visible
+and tappable whether the header is open or collapsed, while the banner fades
+its centred title in underneath. Put them in the hero instead and the parallax
+carries them off screen; put them in `renderBanner` and they only exist once
+collapsed.
+
+```tsx
+<ParallaxHeader
+  title="Panthera tigris"
+  stickyTopInset={insets.top}
+  headerLeft={<BackButton onPress={navigation.goBack} />}
+  headerRight={<MoreButton onPress={openSheet} />}
+/>
+```
+
+The gap between them is transparent to touches (`pointerEvents="box-none"`),
+so the hero underneath still takes a swipe.
+
 ## Props
 
 ### Header
@@ -106,6 +128,8 @@ case above.
 | `header`         | `ReactNode` | —       | Expanded hero content                                                    |
 | `headerHeight`   | `number`    | `300`   | Hero height, or its floor with `autoHeight` — omit it there for no floor |
 | `autoHeight`     | `boolean`   | `false` | Measure the hero and grow past `headerHeight`                            |
+| `headerLeft`     | `ReactNode` | —       | Pinned left of the top strip — a back button                             |
+| `headerRight`    | `ReactNode` | —       | Pinned right of the same strip — a "more" control                        |
 | `parallaxFactor` | `number`    | `0.5`   | `0` pins the hero, `1` scrolls it at full speed                          |
 | `stickyTopInset` | `number`    | `0`     | Where the collapsed chrome rests — your safe area + nav bar              |
 | `tabBarHeight`   | `number`    | `48`    |                                                                          |

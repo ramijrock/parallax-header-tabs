@@ -2,6 +2,8 @@ export { BodyScreen } from './BodyScreen';
 export type { BodyScreenProps } from './BodyScreen';
 export { Card } from './Card';
 export { Diet } from './Diet';
+export { HeaderButton } from './HeaderButton';
+export type { HeaderButtonProps } from './HeaderButton';
 export { Housing } from './Housing';
 export { Medical } from './Medical';
 export { Overview } from './Overview';

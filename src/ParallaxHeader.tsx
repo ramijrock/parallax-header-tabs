@@ -43,6 +43,8 @@ export const ParallaxHeader = forwardRef<
       header,
       headerHeight,
       autoHeight = false,
+      headerLeft,
+      headerRight,
       parallaxFactor = 0.5,
       stickyTopInset = 0,
       tabBarHeight = 48,
@@ -360,6 +362,35 @@ export const ParallaxHeader = forwardRef<
           />
         ) : null}
 
+        {/* Painted after the banner, so the two share the top strip with the
+            controls on top: the banner fades its centred title in underneath
+            while these stay put and stay tappable. `box-none` keeps the gap
+            between them transparent to touches. */}
+        {headerLeft || headerRight ? (
+          <View
+            pointerEvents="box-none"
+            testID={testID ? `${testID}-chrome` : undefined}
+            style={[
+              styles.chrome,
+              {
+                height: stickyTopInset + bannerHeight,
+                paddingTop: stickyTopInset,
+              },
+            ]}
+          >
+            {/* Two slots always, so a lone `headerRight` is still on the right. */}
+            <View pointerEvents="box-none" style={styles.chromeSlot}>
+              {headerLeft}
+            </View>
+            <View
+              pointerEvents="box-none"
+              style={[styles.chromeSlot, styles.chromeSlotRight]}
+            >
+              {headerRight}
+            </View>
+          </View>
+        ) : null}
+
         {footer ? <View style={styles.footer}>{footer}</View> : null}
 
         <TabOverflowSheet
@@ -390,6 +421,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  chrome: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chromeSlot: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  chromeSlotRight: { justifyContent: 'flex-end' },
   overflowButton: {
     justifyContent: 'center',
     paddingHorizontal: 16,

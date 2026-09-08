@@ -1,5 +1,5 @@
 import { createRef } from 'react';
-import { Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { ParallaxHeader } from '../ParallaxHeader';
 import type { ParallaxHeaderHandle, TabItem } from '../types';
@@ -140,6 +140,53 @@ describe('ParallaxHeader', () => {
     // rises is `collapseDistance`, covered in the useHeaderMetrics tests.
     expect(banner.props.style.height).toBe(92);
     expect(screen.getByTestId('ph-tab-bar').props.style.top).toBe(300);
+  });
+
+  it('keeps the header controls above the banner and out of the hero', () => {
+    render(
+      <ParallaxHeader
+        testID="ph"
+        title="Panthera tigris"
+        stickyTopInset={44}
+        bannerHeight={48}
+        header={<Text>Hero</Text>}
+        headerLeft={<Text>Back</Text>}
+        headerRight={<Text>More</Text>}
+        tabs={tabs}
+      />
+    );
+    // Outside the hero, so the parallax cannot carry them off screen, and
+    // outside the banner, which is hidden from assistive tech and fades.
+    expect(screen.getByText('Back')).toBeTruthy();
+    expect(screen.getByText('More')).toBeTruthy();
+    const chrome = screen.getByTestId('ph-chrome');
+    const chromeStyle = StyleSheet.flatten(chrome.props.style);
+    // The same strip the banner owns — inset plus banner — so the controls sit
+    // on the collapsed title's line rather than over the tabs.
+    expect(chromeStyle.height).toBe(92);
+    expect(chromeStyle.paddingTop).toBe(44);
+    expect(chrome.props.pointerEvents).toBe('box-none');
+  });
+
+  it('reports a press on a header control', () => {
+    const onBack = jest.fn();
+    render(
+      <ParallaxHeader
+        headerLeft={
+          <Text accessibilityRole="button" onPress={onBack}>
+            Back
+          </Text>
+        }
+        tabs={tabs}
+      />
+    );
+    fireEvent.press(screen.getByText('Back'));
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('draws no top strip when neither control is given', () => {
+    render(<ParallaxHeader testID="ph" title="Panthera tigris" tabs={tabs} />);
+    expect(screen.queryByTestId('ph-chrome')).toBeNull();
   });
 
   it('omits the banner entirely when there is nothing to put in it', () => {

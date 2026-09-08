@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import {
+  Alert,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -12,7 +13,7 @@ import {
   type ParallaxHeaderHandle,
   type TabItem,
 } from '@ramijd/parallax-header-tabs';
-import { BodyScreen } from './layout';
+import { BodyScreen, HeaderButton } from './layout';
 
 const THEME = {
   background: '#f4f5f7',
@@ -92,6 +93,23 @@ export default function App() {
         onEndReached={onEndReached}
         refreshing={refreshing}
         onRefresh={onRefresh}
+        // Pinned to the top strip: both stay put and stay tappable while the
+        // hero collapses, and the banner fades its title in underneath them.
+        headerLeft={
+          <HeaderButton
+            icon="back"
+            label="Go back"
+            // A real app pops the navigator here.
+            onPress={() => Alert.alert('Back', 'Would pop the stack.')}
+          />
+        }
+        headerRight={
+          <HeaderButton
+            icon="more"
+            label="More options"
+            onPress={() => Alert.alert('More', 'Would open an action sheet.')}
+          />
+        }
         header={
           <View style={styles.hero}>
             {/* Swipe it, or let it advance on its own. */}

@@ -77,6 +77,15 @@ export interface ParallaxHeaderProps {
    */
   autoHeight?: boolean;
   /**
+   * Pinned to the left of the top strip — a back button belongs here. Drawn
+   * above the hero and above the collapsed banner and never moves, so it
+   * stays hit-testable and legible in both states. The banner's title is
+   * centred and untouched by it.
+   */
+  headerLeft?: ReactNode;
+  /** The same strip, right-hand side — an overflow or "more" control. */
+  headerRight?: ReactNode;
+  /**
    * How much slower than the scroll the hero moves. 0 pins it, 1 scrolls it
    * away at full speed.
    * @default 0.5
