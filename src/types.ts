@@ -1,0 +1,160 @@
+import type { ReactNode, ComponentType } from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
+
+/** A tab in the sticky bar. `key` identifies it — never the array index. */
+export interface TabItem {
+  key: string;
+  title: string;
+  /** Rendered left of the title. Any node, so the package needs no icon library. */
+  icon?: ReactNode;
+  /** Used instead of `icon` while the tab is active. Falls back to `icon`. */
+  activeIcon?: ReactNode;
+  /** Free-form payload handed back to your callbacks untouched. */
+  data?: unknown;
+}
+
+export interface ParallaxHeaderTheme {
+  /** Page background behind the scrolling body. */
+  background: string;
+  /** Tab bar and sub tab bar background. */
+  surface: string;
+  /** Inactive tab label. */
+  text: string;
+  /** Active tab label. */
+  activeText: string;
+  /** Underline that slides to the active tab. */
+  indicator: string;
+  /** Hairline under the bars. */
+  border: string;
+  /** Collapsed banner label. */
+  bannerText: string;
+  /** Collapsed banner fill, used when no `BannerBackground` is supplied. */
+  bannerBackground: string;
+  /** Overflow sheet fill. */
+  overlay: string;
+}
+
+/** Props for a caller-supplied background behind the collapsed banner. */
+export interface BannerBackgroundProps {
+  style?: StyleProp<ViewStyle>;
+  children?: ReactNode;
+}
+
+export interface ParallaxHeaderHandle {
+  /** Select a tab by key. No-op for an unknown key. */
+  setTab: (key: string) => void;
+  /** Select a sub tab by key. No-op for an unknown key. */
+  setSubTab: (key: string) => void;
+  /** Bring a tab into view without changing the selection. */
+  scrollToTab: (key: string) => void;
+  scrollTo: (y: number, animated?: boolean) => void;
+  scrollToTop: (animated?: boolean) => void;
+}
+
+export interface ParallaxHeaderProps {
+  // ── Header ──────────────────────────────────────────────────────────────
+  /** The expanded hero content. */
+  header?: ReactNode;
+  /**
+   * Expanded hero height. With `autoHeight` this is a floor, not a fixed size.
+   * @default 300
+   */
+  headerHeight?: number;
+  /**
+   * Measure the hero and grow past `headerHeight` when its content is taller
+   * (an extra row of tags, a long title, a wide tablet). Every offset derives
+   * from the resulting height, so nothing needs compensating by hand.
+   * @default false
+   */
+  autoHeight?: boolean;
+  /**
+   * How much slower than the scroll the hero moves. 0 pins it, 1 scrolls it
+   * away at full speed.
+   * @default 0.5
+   */
+  parallaxFactor?: number;
+  /**
+   * Where the tab bar comes to rest once collapsed — set this to your safe
+   * area top plus any fixed nav bar.
+   * @default 0
+   */
+  stickyTopInset?: number;
+  /** @default 48 */
+  tabBarHeight?: number;
+
+  // ── Tabs ────────────────────────────────────────────────────────────────
+  tabs?: TabItem[];
+  /** Controlled selection. Omit to let the component own it. */
+  activeTabKey?: string;
+  /** Initial selection when uncontrolled. Defaults to the first tab. */
+  defaultTabKey?: string;
+  onTabChange?: (tab: TabItem, index: number) => void;
+
+  subTabs?: TabItem[];
+  activeSubTabKey?: string;
+  defaultSubTabKey?: string;
+  onSubTabChange?: (tab: TabItem, index: number) => void;
+
+  // ── Body ────────────────────────────────────────────────────────────────
+  children?: ReactNode;
+  /** Pinned to the bottom of the screen, above the scroll view. */
+  footer?: ReactNode;
+
+  // ── Collapsed banner ────────────────────────────────────────────────────
+  /** Shown in the banner once the header has collapsed. */
+  title?: string;
+  /**
+   * Height of the collapsed banner. The tab bar pins directly beneath it, so
+   * raising this pushes the pinned tabs down rather than letting the banner
+   * cover them. Ignored when there is no `title` and no `renderBanner`.
+   * @default 48
+   */
+  bannerHeight?: number;
+  /** Replaces the default banner body entirely. */
+  renderBanner?: () => ReactNode;
+  /**
+   * Drawn behind the banner. Pass Expo's `BlurView` for frosted glass, or
+   * leave unset for a solid fill — that keeps the package free of any Expo
+   * dependency.
+   */
+  BannerBackground?: ComponentType<BannerBackgroundProps>;
+  onBannerVisibilityChange?: (visible: boolean) => void;
+
+  // ── Scrolling ───────────────────────────────────────────────────────────
+  /** Fires once per approach to the bottom, on drag end as well as momentum. */
+  onEndReached?: () => void;
+  /** Distance from the bottom that counts as reaching it, in px. @default 120 */
+  onEndReachedThreshold?: number;
+  refreshing?: boolean;
+  onRefresh?: () => void;
+  /** Raw scroll offset, every frame. */
+  onScroll?: (y: number) => void;
+
+  // ── Overflow sheet ──────────────────────────────────────────────────────
+  /** Show the overflow button once there are more tabs than this. @default 4 */
+  overflowThreshold?: number;
+  /**
+   * Enables reordering in the overflow sheet and receives the new order.
+   * Omit to make the sheet selection-only.
+   */
+  onTabsReorder?: (tabs: TabItem[]) => void;
+  /**
+   * Replaces the sheet's list. Supply this to plug in a drag-and-drop list
+   * (react-native-draggable-flatlist, say) without the package depending on
+   * one. Call `select` to pick a tab and `commit` to publish a new order.
+   */
+  renderTabList?: (args: {
+    tabs: TabItem[];
+    activeKey?: string;
+    select: (tab: TabItem) => void;
+    commit: (tabs: TabItem[]) => void;
+    close: () => void;
+  }) => ReactNode;
+
+  // ── Misc ────────────────────────────────────────────────────────────────
+  theme?: Partial<ParallaxHeaderTheme>;
+  style?: StyleProp<ViewStyle>;
+  /** Called before a haptic-worthy interaction. Wire to expo-haptics if wanted. */
+  onFeedback?: () => void;
+  testID?: string;
+}

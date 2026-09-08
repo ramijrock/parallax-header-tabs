@@ -1,0 +1,199 @@
+import { useCallback, useMemo, useRef, useState } from 'react';
+import {
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {
+  HeaderCarousel,
+  ParallaxHeader,
+  type ParallaxHeaderHandle,
+  type TabItem,
+} from '@ramijd/parallax-header-tabs';
+
+const THEME = {
+  background: '#f4f5f7',
+  surface: '#ffffff',
+  text: '#6b7280',
+  activeText: '#24595f',
+  indicator: '#24595f',
+  bannerBackground: 'rgba(17,24,39,0.92)',
+};
+
+const INITIAL_TABS: TabItem[] = [
+  { key: 'overview', title: 'Overview' },
+  { key: 'population', title: 'Population' },
+  { key: 'housing', title: 'Housing' },
+  { key: 'medical', title: 'Medical' },
+  { key: 'diet', title: 'Diet' },
+  { key: 'taxonomy', title: 'Taxonomy' },
+];
+
+const SUB_TABS: TabItem[] = [
+  { key: 'pending', title: 'Pending' },
+  { key: 'approved', title: 'Approved' },
+];
+
+const GALLERY = [
+  'https://picsum.photos/id/1074/900/600',
+  'https://picsum.photos/id/1025/900/600',
+  'https://picsum.photos/id/1062/900/600',
+  'https://picsum.photos/id/1084/900/600',
+];
+
+export default function App() {
+  const ref = useRef<ParallaxHeaderHandle>(null);
+  const [tabs, setTabs] = useState(INITIAL_TABS);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [rows, setRows] = useState(20);
+  const [refreshing, setRefreshing] = useState(false);
+  const [tagged, setTagged] = useState(false);
+
+  const onEndReached = useCallback(() => {
+    setRows((n) => Math.min(n + 20, 120));
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 900);
+  }, []);
+
+  const body = useMemo(
+    () =>
+      Array.from({ length: rows }).map((_, i) => (
+        <View key={i} style={styles.row}>
+          <Text style={styles.rowTitle}>
+            {activeTab} · item {i + 1}
+          </Text>
+          <Text style={styles.rowMeta}>Scroll on to page in more</Text>
+        </View>
+      )),
+    [rows, activeTab]
+  );
+
+  return (
+    <SafeAreaView style={styles.flex}>
+      <ParallaxHeader
+        ref={ref}
+        theme={THEME}
+        title="Panthera tigris"
+        headerHeight={280}
+        // Grows past 280 when the tag row is on — every offset follows.
+        autoHeight
+        parallaxFactor={0.5}
+        stickyTopInset={0}
+        tabs={tabs}
+        activeTabKey={activeTab}
+        onTabChange={(tab) => setActiveTab(tab.key)}
+        subTabs={activeTab === 'medical' ? SUB_TABS : undefined}
+        onTabsReorder={setTabs}
+        onEndReached={onEndReached}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        header={
+          <View style={styles.hero}>
+            {/* Swipe it, or let it advance on its own. */}
+            <HeaderCarousel
+              images={GALLERY}
+              style={StyleSheet.absoluteFill}
+              autoPlay
+              interval={3500}
+              // Five dots at most; a longer run slides a window and the pill
+              // keeps the real position readable.
+              maxDots={5}
+              showCounter
+              paginationStyle={styles.heroDots}
+            />
+            <View style={styles.heroScrim} pointerEvents="none" />
+            <View style={styles.heroBody}>
+              <Text style={styles.heroKicker}>SPECIES</Text>
+              <Text style={styles.heroTitle}>Panthera tigris</Text>
+              <Text style={styles.heroSub}>Bengal tiger</Text>
+              <TouchableOpacity
+                onPress={() => setTagged((t) => !t)}
+                style={styles.toggle}
+              >
+                <Text style={styles.toggleText}>
+                  {tagged ? 'Hide tag row' : 'Show tag row'}
+                </Text>
+              </TouchableOpacity>
+              {tagged ? (
+                <View style={styles.tagRow}>
+                  {['Endangered', 'CITES I', 'Breeding'].map((tag) => (
+                    <View key={tag} style={styles.tag}>
+                      <Text style={styles.tagText}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          </View>
+        }
+        footer={
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => ref.current?.scrollToTop()}
+          >
+            <Text style={styles.fabText}>Top</Text>
+          </TouchableOpacity>
+        }
+      >
+        {body}
+      </ParallaxHeader>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  flex: { flex: 1, backgroundColor: '#f4f5f7' },
+  hero: { minHeight: 280, justifyContent: 'flex-end' },
+  heroScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  heroBody: { padding: 20, paddingBottom: 28 },
+  heroKicker: { color: '#e5e7eb', fontSize: 12, letterSpacing: 2 },
+  heroTitle: { color: '#fff', fontSize: 26, fontWeight: '700', marginTop: 4 },
+  heroSub: { color: '#e5e7eb', fontSize: 14, fontStyle: 'italic' },
+  // Bottom right, clear of the hero copy on the left.
+  heroDots: { bottom: 16, justifyContent: 'flex-end', paddingRight: 16 },
+  toggle: {
+    marginTop: 14,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  toggleText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  tagRow: { flexDirection: 'row', marginTop: 14, flexWrap: 'wrap' },
+  tag: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  tagText: { color: '#fff', fontSize: 12 },
+  row: {
+    backgroundColor: '#fff',
+    marginHorizontal: 12,
+    marginTop: 8,
+    padding: 14,
+    borderRadius: 10,
+  },
+  rowTitle: { fontSize: 15, fontWeight: '600', color: '#111827' },
+  rowMeta: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
+  fab: {
+    alignSelf: 'flex-end',
+    margin: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 24,
+    backgroundColor: '#24595f',
+  },
+  fabText: { color: '#fff', fontWeight: '600' },
+});

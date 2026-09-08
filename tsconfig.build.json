@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig",
+  "exclude": [
+    "example",
+    "lib",
+    "src/__tests__",
+    "jest",
+    "jest.setup.js"
+  ]
+}
