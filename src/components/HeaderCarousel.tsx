@@ -38,6 +38,14 @@ export interface HeaderCarouselProps {
   images: CarouselImage[];
   /** Fixed height. Omit to size from `style` — `StyleSheet.absoluteFill`, say. */
   height?: number;
+  /**
+   * Width-to-height ratio to size itself by, `16 / 9` and the like. This is
+   * the one that lets the images decide the header's height: in flow with an
+   * `aspectRatio`, the strip reports a real height, so `autoHeight` measures
+   * the picture rather than the copy laid over it and nothing is cropped.
+   * Ignored when `height` is given.
+   */
+  aspectRatio?: number;
   /** @default false */
   autoPlay?: boolean;
   /** Time each image is held, in ms. @default 4000 */
@@ -105,6 +113,7 @@ export const HeaderCarousel = forwardRef<
     {
       images,
       height,
+      aspectRatio,
       autoPlay = false,
       interval = AUTOPLAY_INTERVAL,
       loop = true,
@@ -221,9 +230,19 @@ export const HeaderCarousel = forwardRef<
 
     const counting = showCounter ?? count > maxDots;
 
+    // Sizing, in the order the props promise: a given height, else one derived
+    // from the ratio and the measured width, else whatever `style` dictates.
+    const resolvedHeight =
+      height ?? (aspectRatio ? width / aspectRatio : undefined);
+
     return (
       <View
-        style={[styles.root, height === undefined ? null : { height }, style]}
+        style={[
+          styles.root,
+          height === undefined ? null : { height },
+          height === undefined && aspectRatio ? { aspectRatio } : null,
+          style,
+        ]}
         onLayout={onLayout}
         testID={testID}
       >
@@ -249,7 +268,16 @@ export const HeaderCarousel = forwardRef<
               key={position}
               source={toSource(image)}
               resizeMode={resizeMode}
-              style={[styles.image, { width }]}
+              // A real height once one is known: the `100%` fallback has
+              // nothing to resolve against inside a horizontal scroll view
+              // that is itself sized by its content.
+              style={[
+                styles.image,
+                { width },
+                resolvedHeight === undefined
+                  ? null
+                  : { height: resolvedHeight },
+              ]}
             />
           ))}
         </ScrollView>

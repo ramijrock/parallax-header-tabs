@@ -54,11 +54,15 @@ export interface ParallaxHeaderHandle {
 export interface ParallaxHeaderProps {
   // ── Header ──────────────────────────────────────────────────────────────
   /**
-   * The expanded hero content. Give its root `flex: 1` if you set a
+   * The expanded hero content. Give its root `flexGrow: 1` if you set a
    * `headerHeight` taller than the content itself — flexbox stretches a child
    * across, never down, so a natural-height root leaves the rest of the hero
    * bare and a child under `absoluteFill` (a `HeaderCarousel`) stops at the
    * content's height rather than the hero's.
+   *
+   * `flexGrow: 1`, not `flex: 1`: the shorthand also sets `flexBasis: 0`, and
+   * with no `headerHeight` there is no free space to grow back into, so the
+   * hero collapses to its padding instead of measuring its content.
    */
   header?: ReactNode;
   /**

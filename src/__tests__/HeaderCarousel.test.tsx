@@ -49,6 +49,41 @@ describe('HeaderCarousel', () => {
     ]);
   });
 
+  it('sizes itself from a ratio, so the images can drive the header height', () => {
+    render(
+      <HeaderCarousel images={images} aspectRatio={3 / 2} testID="carousel" />
+    );
+    layOut();
+    // In flow rather than absolutely filled, so the strip reports a height and
+    // `autoHeight` measures the picture instead of the copy over it.
+    expect(
+      StyleSheet.flatten(screen.getByTestId('carousel').props.style)
+    ).toMatchObject({ aspectRatio: 1.5 });
+    // A real height on every slide: the `100%` fallback has nothing to resolve
+    // against inside a horizontal scroll view sized by its own content.
+    const heights = screen
+      .UNSAFE_getAllByType(Image)
+      .map((slide) => StyleSheet.flatten(slide.props.style).height);
+    expect(heights).toEqual([WIDTH / 1.5, WIDTH / 1.5, WIDTH / 1.5]);
+  });
+
+  it('lets an explicit height win over the ratio', () => {
+    render(
+      <HeaderCarousel
+        images={images}
+        height={200}
+        aspectRatio={3 / 2}
+        testID="carousel"
+      />
+    );
+    layOut();
+    const style = StyleSheet.flatten(
+      screen.getByTestId('carousel').props.style
+    );
+    expect(style.height).toBe(200);
+    expect(style.aspectRatio).toBeUndefined();
+  });
+
   it('follows a swipe with the dots and reports the new index', () => {
     const onIndexChange = jest.fn();
     render(

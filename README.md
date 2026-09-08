@@ -77,14 +77,14 @@ what its content measures. That is the one to use when the hero is a
 than being stranded inside a default nobody chose.
 
 Set a `headerHeight` taller than the hero content and give the hero's root
-`flex: 1`:
+`flexGrow: 1`:
 
 ```tsx
 <ParallaxHeader
   headerHeight={450}
   autoHeight
   header={
-    <View style={{ flex: 1, minHeight: 280, justifyContent: 'flex-end' }}>
+    <View style={{ flexGrow: 1, minHeight: 280, justifyContent: 'flex-end' }}>
       <HeaderCarousel images={gallery} style={StyleSheet.absoluteFill} />
       {/* … */}
     </View>
@@ -92,10 +92,15 @@ Set a `headerHeight` taller than the hero content and give the hero's root
 />
 ```
 
-Flexbox stretches a child across but never down, so without `flex: 1` the
-root keeps its own natural height: the carousel stops there and the rest of
-the 450 is bare background. `minHeight` still floors it for the no-`headerHeight`
-case above.
+Flexbox stretches a child across but never down, so without it the root keeps
+its own natural height: the carousel stops there and the rest of the 450 is
+bare background. `minHeight` still floors it for the no-`headerHeight` case
+above.
+
+Use `flexGrow: 1` and not the `flex: 1` shorthand, which also sets
+`flexBasis: 0`. With no `headerHeight` the hero is auto-height, so there is no
+free space to grow back into and a `flex: 1` root collapses to its padding —
+the header then measures far shorter than its content.
 
 ### Controls that outlive the collapse
 
@@ -214,6 +219,7 @@ import { HeaderCarousel, ParallaxHeader } from '@ramijd/parallax-header-tabs';
 | ----------------------------------- | ----------------------------------- | ----------------- | --------------------------------------------------------- |
 | `images`                            | `(string \| ImageSourcePropType)[]` | —                 | A URL string is accepted as is                            |
 | `height`                            | `number`                            | —                 | Omit to size from `style`                                 |
+| `aspectRatio`                       | `number`                            | —                 | Size from the width, e.g. `16 / 9`; ignored with `height` |
 | `autoPlay`                          | `boolean`                           | `false`           |                                                           |
 | `interval`                          | `number`                            | `4000`            | ms each image is held                                     |
 | `loop`                              | `boolean`                           | `true`            | Wrap from the last image back to the first                |
@@ -225,8 +231,33 @@ import { HeaderCarousel, ParallaxHeader } from '@ramijd/parallax-header-tabs';
 | `dotColor` / `activeDotColor`       | `string`                            | white-ish / white |                                                           |
 | `paginationStyle`                   | `ViewStyle`                         | —                 | Moves the dot row off the bottom centre                   |
 | `counterStyle` / `counterTextStyle` | style                               | —                 | The pill and its label                                    |
-| `resizeMode`                        | `ImageProps['resizeMode']`          | `'cover'`         |                                                           |
-| `children`                          | `ReactNode`                         | —                 | Drawn over the images                                     |
+
+### Letting the picture set the header height
+
+Under `absoluteFill` the carousel is out of flow, so it reports no height of
+its own: with `autoHeight` the header measures whatever copy is laid over the
+images and crops them to that. Put the strip in flow with an `aspectRatio`
+instead and the picture decides, uncropped, with no `headerHeight` anywhere:
+
+```tsx
+<ParallaxHeader
+  autoHeight
+  header={
+    <View>
+      <HeaderCarousel images={gallery} aspectRatio={3 / 2} autoPlay />
+      {/* Absolute, so the copy rides over the picture and adds no height. */}
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+        <Text style={{ color: '#fff', padding: 20 }}>Panthera tigris</Text>
+      </View>
+    </View>
+  }
+>
+  {body}
+</ParallaxHeader>
+```
+
+| `resizeMode` | `ImageProps['resizeMode']` | `'cover'` | |
+| `children` | `ReactNode` | — | Drawn over the images |
 
 Slide width comes from a measurement rather than `Dimensions`, so paging stays
 true in a padded hero, on a split screen and after a rotation. A drag suspends
