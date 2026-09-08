@@ -142,12 +142,23 @@ describe('HeaderCarousel', () => {
     expect(screen.getByTestId('carousel-counter')).toHaveTextContent('7 / 12');
   });
 
-  it('hides the dots and locks scrolling for a single image', () => {
-    render(<HeaderCarousel images={['only.jpg']} testID="carousel" />);
-    expect(screen.queryByTestId('carousel-pagination')).toBeNull();
-    expect(screen.getByTestId('carousel-strip').props.scrollEnabled).toBe(
-      false
+  it('draws a single image as a picture rather than a carousel', () => {
+    // `showCounter` asked for outright, to prove the pill is still withheld.
+    render(
+      <HeaderCarousel images={['only.jpg']} showCounter testID="carousel" />
     );
+    expect(screen.getByTestId('carousel-image')).toBeTruthy();
+    expect(screen.UNSAFE_getAllByType(Image)).toHaveLength(1);
+    // No paging container, so there is nothing to swipe or bounce.
+    expect(screen.queryByTestId('carousel-strip')).toBeNull();
+    expect(screen.queryByTestId('carousel-pagination')).toBeNull();
+    expect(screen.queryByTestId('carousel-counter')).toBeNull();
+  });
+
+  it('draws nothing for an empty list', () => {
+    render(<HeaderCarousel images={[]} testID="carousel" />);
+    expect(screen.UNSAFE_queryAllByType(Image)).toHaveLength(0);
+    expect(screen.queryByTestId('carousel-pagination')).toBeNull();
   });
 
   it('advances on its own and wraps to the first image', () => {

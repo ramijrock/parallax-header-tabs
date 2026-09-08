@@ -31,5 +31,8 @@ export const GALLERY = [
   'https://picsum.photos/id/1084/900/600',
 ];
 
-/** The gallery's images are all 900×600. */
+/** One picture, to show a lone image is not drawn as a carousel. */
+export const SOLO_IMAGE = ['https://picsum.photos/id/1074/900/600'];
+
+/** Every image here is 900×600. */
 export const GALLERY_RATIO = 3 / 2;

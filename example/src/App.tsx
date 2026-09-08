@@ -5,6 +5,7 @@ import {
   ImageHeaderScreen,
   Launcher,
   PlainHeaderScreen,
+  SoloImageHeaderScreen,
   type HeaderScreenProps,
   type HeroVariant,
 } from './screens';
@@ -13,6 +14,7 @@ import {
 const SCREENS: Record<HeroVariant, ComponentType<HeaderScreenProps>> = {
   image: ImageHeaderScreen,
   fitted: FittedImageHeaderScreen,
+  solo: SoloImageHeaderScreen,
   plain: PlainHeaderScreen,
 };
 

@@ -1,5 +1,5 @@
 /** The three header screens, as the launcher names them. */
-export type HeroVariant = 'image' | 'fitted' | 'plain';
+export type HeroVariant = 'image' | 'fitted' | 'solo' | 'plain';
 
 export const CHOICES: {
   variant: HeroVariant;
@@ -17,6 +17,12 @@ export const CHOICES: {
     title: 'With an image, fitted',
     detail:
       'No `headerHeight`. The carousel is in flow with an `aspectRatio`, so the picture decides the height and none of it is cropped.',
+  },
+  {
+    variant: 'solo',
+    title: 'With one image',
+    detail:
+      'A single image is drawn as a plain picture: no dots, no counter, no autoplay and nothing to swipe. Fitted to its ratio, as above.',
   },
   {
     variant: 'plain',

@@ -195,6 +195,11 @@ ref.current?.scrollToTop();
 component, so it composes with anything else you put there — pass a scrim or a
 title as children and they ride above the images.
 
+Hand it a single image and it stops being a carousel: the picture is drawn on
+its own, with no scroll container, no dots, no counter and no autoplay, so
+nothing invites a swipe that would do nothing. The same code path therefore
+serves a gallery and a lone photo.
+
 ```tsx
 import { HeaderCarousel, ParallaxHeader } from '@ramijd/parallax-header-tabs';
 

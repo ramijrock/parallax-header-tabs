@@ -104,6 +104,10 @@ const toSource = (image: CarouselImage): ImageSourcePropType =>
  * Slide width comes from a measurement rather than `Dimensions`, so the paging
  * stays true inside a padded hero, on a split screen and after a rotation. The
  * window width is only the first guess, used until that measurement lands.
+ *
+ * A single image is drawn as a plain picture: no scroll container, no dots, no
+ * counter and no autoplay, so nothing about it invites a swipe that would do
+ * nothing.
  */
 export const HeaderCarousel = forwardRef<
   HeaderCarouselHandle,
@@ -229,11 +233,23 @@ export const HeaderCarousel = forwardRef<
     }, [count, index, maxDots]);
 
     const counting = showCounter ?? count > maxDots;
+    // The lone image, or nothing when there are several — and `undefined` for
+    // an empty list, which draws no picture at all.
+    const single = count === 1 ? images[0] : undefined;
 
     // Sizing, in the order the props promise: a given height, else one derived
     // from the ratio and the measured width, else whatever `style` dictates.
     const resolvedHeight =
       height ?? (aspectRatio ? width / aspectRatio : undefined);
+
+    const slideStyle = [
+      styles.image,
+      { width },
+      // A real height once one is known: the `100%` fallback has nothing to
+      // resolve against inside a horizontal scroll view that is itself sized
+      // by its content.
+      resolvedHeight === undefined ? null : { height: resolvedHeight },
+    ];
 
     return (
       <View
@@ -246,41 +262,42 @@ export const HeaderCarousel = forwardRef<
         onLayout={onLayout}
         testID={testID}
       >
-        <ScrollView
-          ref={scrollRef}
-          horizontal
-          pagingEnabled
-          scrollEnabled={count > 1}
-          showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={onMomentumScrollEnd}
-          onScrollBeginDrag={() => {
-            interacting.current = true;
-          }}
-          onScrollEndDrag={() => {
-            interacting.current = false;
-          }}
-          testID={testID ? `${testID}-strip` : undefined}
-        >
-          {images.map((image, position) => (
-            // Keyed by position on purpose: the slides are positional, so a
-            // changed list should swap sources in place rather than remount.
-            <Image
-              key={position}
-              source={toSource(image)}
-              resizeMode={resizeMode}
-              // A real height once one is known: the `100%` fallback has
-              // nothing to resolve against inside a horizontal scroll view
-              // that is itself sized by its content.
-              style={[
-                styles.image,
-                { width },
-                resolvedHeight === undefined
-                  ? null
-                  : { height: resolvedHeight },
-              ]}
-            />
-          ))}
-        </ScrollView>
+        {single ? (
+          // One image is not a carousel, so it is not built as one: no paging
+          // container, no momentum handlers, nothing to swipe or bounce.
+          <Image
+            source={toSource(single)}
+            resizeMode={resizeMode}
+            style={slideStyle}
+            testID={testID ? `${testID}-image` : undefined}
+          />
+        ) : (
+          <ScrollView
+            ref={scrollRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={onMomentumScrollEnd}
+            onScrollBeginDrag={() => {
+              interacting.current = true;
+            }}
+            onScrollEndDrag={() => {
+              interacting.current = false;
+            }}
+            testID={testID ? `${testID}-strip` : undefined}
+          >
+            {images.map((image, position) => (
+              // Keyed by position on purpose: the slides are positional, so a
+              // changed list should swap sources in place rather than remount.
+              <Image
+                key={position}
+                source={toSource(image)}
+                resizeMode={resizeMode}
+                style={slideStyle}
+              />
+            ))}
+          </ScrollView>
+        )}
 
         {children ? (
           // Lets a scrim or a title sit over the images without swallowing the
