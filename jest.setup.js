@@ -1,4 +1,3 @@
-/* eslint-env jest */
 /**
  * Replaces the core component mocks the React Native jest preset builds with
  * `jest/mockComponent.js`, which crashes on any component that has no
