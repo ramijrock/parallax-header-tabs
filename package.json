@@ -37,7 +37,7 @@
     "!**/.*"
   ],
   "scripts": {
-    "example": "yarn workspace @ramijd/parallax-header-tabs-example",
+    "example": "yarn workspace @ramijd/parallax-header-tabs-example start",
     "clean": "del-cli lib",
     "prepare": "bob build",
     "typecheck": "tsc",
