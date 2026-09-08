@@ -1,6 +1,6 @@
 {
   "name": "@ramijd/parallax-header-tabs",
-  "version": "1.1.2",
+  "version": "1.1.1",
   "description": "Collapsing parallax header with sticky tabs and sub-tabs for React Native. Works in Expo and React Native CLI with zero native dependencies.",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
