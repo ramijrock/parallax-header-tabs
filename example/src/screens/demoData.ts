@@ -17,6 +17,9 @@ export const INITIAL_TABS: TabItem[] = [
   { key: 'medical', title: 'Medical' },
   { key: 'diet', title: 'Diet' },
   { key: 'taxonomy', title: 'Taxonomy' },
+  // Nothing behind this one, on purpose: it is what the header's empty state
+  // is for. See `isBodyEmpty` in `src/layout`.
+  { key: 'incidents', title: 'Incidents' },
 ];
 
 export const SUB_TABS: TabItem[] = [

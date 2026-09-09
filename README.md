@@ -105,6 +105,44 @@ Use `flexGrow: 1` and not the `flex: 1` shorthand, which also sets
 free space to grow back into and a `flex: 1` root collapses to its padding —
 the header then measures far shorter than its content.
 
+### A tab with nothing in it
+
+Tell the header the body is empty and it draws the empty state in place of it,
+centred in what is left of the screen below the bars. The hero, the tabs and
+the collapse are untouched — it is the body that is empty, not the screen — and
+because it sits inside the scroll view, pull to refresh still works on it.
+
+```tsx
+<ParallaxHeader
+  tabs={tabs}
+  activeTabKey={tab}
+  onTabChange={(next) => setTab(next.key)}
+  empty={rows.length === 0}
+  emptyText="No data found"
+>
+  {rows.map((row) => (
+    <Row key={row.id} {...row} />
+  ))}
+</ParallaxHeader>
+```
+
+Say `empty` outright whenever the body renders its own nothing — a
+`<BodyScreen tab={tab} />` that returns `null` for a tab with no rows still
+arrives here as one child, and nothing the header can read tells it what that
+child will draw. Left unset, a body with no children at all counts as empty.
+
+`renderEmpty` replaces the message with a view of your own — an illustration, a
+"add the first record" button — and is handed the same space:
+
+```tsx
+renderEmpty={() => (
+  <>
+    <Text style={styles.emptyTitle}>No records yet</Text>
+    <Button title="Add one" onPress={add} />
+  </>
+)}
+```
+
 ### Controls that outlive the collapse
 
 `headerLeft` and `headerRight` sit on the top strip — the band the collapsed
@@ -158,6 +196,9 @@ so the hero underneath still takes a swipe.
 | -------------------------- | ------------------------------ | --------------------------------------------------------------------------- |
 | `children`                 | `ReactNode`                    | Scrolling body                                                              |
 | `footer`                   | `ReactNode`                    | Pinned above the scroll view                                                |
+| `empty`                    | `boolean`                      | Draw the empty state instead of the body                                    |
+| `emptyText`                | `string`                       | Its message, `No data found` by default                                     |
+| `renderEmpty`              | `() => ReactNode`              | Replaces the empty state entirely                                           |
 | `title`                    | `string`                       | Shown in the collapsed banner                                               |
 | `bannerHeight`             | `number`                       | Banner height, `48` by default. The pinned tab bar sits directly beneath it |
 | `renderBanner`             | `() => ReactNode`              | Replaces the banner body                                                    |

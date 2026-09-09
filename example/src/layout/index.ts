@@ -1,4 +1,4 @@
-export { BodyScreen } from './BodyScreen';
+export { BodyScreen, isBodyEmpty } from './BodyScreen';
 export type { BodyScreenProps } from './BodyScreen';
 export { Card } from './Card';
 export { Diet } from './Diet';

@@ -220,6 +220,85 @@ describe('ParallaxHeader', () => {
     ).toBeNull();
   });
 
+  it('draws the empty state in place of a body with no data', () => {
+    render(
+      <ParallaxHeader testID="ph" tabs={tabs} empty>
+        <Text>Body</Text>
+      </ParallaxHeader>
+    );
+    expect(screen.getByText('No data found')).toBeTruthy();
+    // In place of the body, not alongside it.
+    expect(screen.queryByText('Body')).toBeNull();
+    // The hero, the tabs and the rest of the header are untouched.
+    expect(screen.getByText('Overview')).toBeTruthy();
+  });
+
+  it('takes a childless body at its word', () => {
+    render(<ParallaxHeader testID="ph" tabs={tabs} />);
+    expect(screen.getByTestId('ph-empty')).toBeTruthy();
+  });
+
+  it('says nothing about a body that renders its own nothing', () => {
+    // One child, which happens to draw nothing: only the caller knows, so
+    // `empty` is the way to say it and guessing here would be wrong.
+    const Nothing = () => null;
+    render(
+      <ParallaxHeader testID="ph" tabs={tabs}>
+        <Nothing />
+      </ParallaxHeader>
+    );
+    expect(screen.queryByTestId('ph-empty')).toBeNull();
+  });
+
+  it('leaves a body with children alone', () => {
+    render(
+      <ParallaxHeader testID="ph" tabs={tabs}>
+        <Text>Body</Text>
+      </ParallaxHeader>
+    );
+    expect(screen.getByText('Body')).toBeTruthy();
+    expect(screen.queryByTestId('ph-empty')).toBeNull();
+  });
+
+  it('takes a message of its own', () => {
+    render(<ParallaxHeader tabs={tabs} empty emptyText="Nothing here yet" />);
+    expect(screen.getByText('Nothing here yet')).toBeTruthy();
+  });
+
+  it('hands the whole empty state over to renderEmpty', () => {
+    render(
+      <ParallaxHeader
+        tabs={tabs}
+        empty
+        emptyText="ignored"
+        renderEmpty={() => <Text>Add the first record</Text>}
+      />
+    );
+    expect(screen.getByText('Add the first record')).toBeTruthy();
+    expect(screen.queryByText('ignored')).toBeNull();
+  });
+
+  it('fills the body below the bars with the empty state', () => {
+    render(
+      <ParallaxHeader
+        testID="ph"
+        tabs={tabs}
+        headerHeight={300}
+        tabBarHeight={48}
+        empty
+      />
+    );
+    const body = screen.getByTestId('ph-scroll').parent;
+    fireEvent(body!, 'layout', {
+      nativeEvent: { layout: { height: 800, width: 390, x: 0, y: 0 } },
+    });
+    // The viewport less the padding the hero and the bar reserve: 800 − 348.
+    const style = StyleSheet.flatten(
+      screen.getByTestId('ph-empty').props.style
+    );
+    expect(style.minHeight).toBe(452);
+  });
+
   it('renders with no tabs at all', () => {
     render(
       <ParallaxHeader header={<Text>Hero</Text>}>

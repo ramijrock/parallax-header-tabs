@@ -1,4 +1,5 @@
 import {
+  Children,
   forwardRef,
   useCallback,
   useEffect,
@@ -14,8 +15,10 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
+  type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
@@ -62,6 +65,9 @@ export const ParallaxHeader = forwardRef<
 
       children,
       footer,
+      empty,
+      emptyText = 'No data found',
+      renderEmpty,
 
       title,
       renderBanner,
@@ -115,6 +121,23 @@ export const ParallaxHeader = forwardRef<
     const bannerProgress = useRef(new Animated.Value(0)).current;
 
     const [sheetVisible, setSheetVisible] = useState(false);
+
+    // Nothing to draw is a state of its own, not a blank page. `empty` is the
+    // caller's word for it, and has to be: a body that renders its own nothing
+    // — a screen component returning `null` for a tab with no rows — still
+    // arrives here as one child. Unset, a childless body is taken at its word.
+    const isEmpty = empty ?? Children.toArray(children).length === 0;
+
+    // The empty state fills what is left of the body below the bars, so the
+    // message sits in the middle of the space the rows would have had rather
+    // than clinging to the top of it. Measured, because that space is the
+    // viewport less the padding the hero and the bars reserve.
+    const [bodyHeight, setBodyHeight] = useState(0);
+    const onBodyLayout = useCallback((event: LayoutChangeEvent) => {
+      const next = event.nativeEvent.layout.height;
+      // Sub-pixel churn from a re-layout must not restart the render loop.
+      setBodyHeight((prev) => (Math.abs(prev - next) < 1 ? prev : next));
+    }, []);
 
     // Latched so each edge fires once: the banner only on a crossing, and
     // `onEndReached` only on a fresh approach to the bottom.
@@ -291,7 +314,7 @@ export const ParallaxHeader = forwardRef<
             scrim over the hero by design, and a translucent fill or a
             `BannerBackground` blur let the passing content read straight
             through. Above this line only the hero is ever drawn. */}
-        <View style={[styles.body, { top: bodyTop }]}>
+        <View style={[styles.body, { top: bodyTop }]} onLayout={onBodyLayout}>
           <Animated.ScrollView
             ref={scrollRef}
             testID={testID ? `${testID}-scroll` : undefined}
@@ -312,7 +335,25 @@ export const ParallaxHeader = forwardRef<
           >
             {/* Opaque, so it occludes the hero as it rises past it. */}
             <View style={{ backgroundColor: theme.background }}>
-              {children}
+              {isEmpty ? (
+                <View
+                  testID={testID ? `${testID}-empty` : undefined}
+                  style={[
+                    styles.empty,
+                    { minHeight: Math.max(0, bodyHeight - bodyPaddingTop) },
+                  ]}
+                >
+                  {renderEmpty ? (
+                    renderEmpty()
+                  ) : (
+                    <Text style={[styles.emptyText, { color: theme.text }]}>
+                      {emptyText}
+                    </Text>
+                  )}
+                </View>
+              ) : (
+                children
+              )}
             </View>
           </Animated.ScrollView>
         </View>
@@ -446,6 +487,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  // Inside the scroll view, so it still pulls to refresh and the header still
+  // collapses over it if the hero is tall enough to leave room.
+  empty: { alignItems: 'center', justifyContent: 'center', padding: 24 },
+  emptyText: { fontSize: 15, fontWeight: '500' },
   chrome: {
     position: 'absolute',
     top: 0,

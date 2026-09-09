@@ -121,6 +121,21 @@ export interface ParallaxHeaderProps {
   children?: ReactNode;
   /** Pinned to the bottom of the screen, above the scroll view. */
   footer?: ReactNode;
+  /**
+   * Draw the empty state instead of the body. Say it outright whenever the
+   * body renders its own nothing — a screen component that returns `null` for
+   * a tab with no rows still arrives here as one child, and no amount of
+   * looking at `children` can see inside it. Left unset, a body with no
+   * children at all is taken at its word and counts as empty.
+   */
+  empty?: boolean;
+  /**
+   * Message for the built-in empty state.
+   * @default 'No data found'
+   */
+  emptyText?: string;
+  /** Replaces the built-in empty state entirely. */
+  renderEmpty?: () => ReactNode;
 
   // ── Collapsed banner ────────────────────────────────────────────────────
   /** Shown in the banner once the header has collapsed. */

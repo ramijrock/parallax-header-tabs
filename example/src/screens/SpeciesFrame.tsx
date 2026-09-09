@@ -5,7 +5,7 @@ import {
   type ParallaxHeaderHandle,
   type TabItem,
 } from '@ramijd/parallax-header-tabs';
-import { BodyScreen, HeaderButton } from '../layout';
+import { BodyScreen, HeaderButton, isBodyEmpty } from '../layout';
 import { INITIAL_TABS, SUB_TABS, THEME } from './demoData';
 
 /** What the launcher hands every header screen. */
@@ -71,6 +71,11 @@ export const SpeciesFrame = ({
       activeSubTabKey={activeSubTab}
       onSubTabChange={(tab) => setActiveSubTab(tab.key)}
       onTabsReorder={setTabs}
+      // The "Incidents" tab has no data set behind it, so the header draws its
+      // own empty state in place of the body — centred in what is left of the
+      // screen below the bars, and still pullable to refresh. `emptyText`
+      // changes the message; `renderEmpty` replaces the whole thing.
+      empty={isBodyEmpty(activeTab)}
       onEndReached={onEndReached}
       refreshing={refreshing}
       onRefresh={onRefresh}
