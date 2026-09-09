@@ -1,4 +1,5 @@
 export { FittedImageHeaderScreen } from './FittedImageHeaderScreen';
+export type { FittedImageHeaderScreenProps } from './FittedImageHeaderScreen';
 export { HeroCopy } from './HeroCopy';
 export { ImageHeaderScreen } from './ImageHeaderScreen';
 export { Launcher } from './Launcher';

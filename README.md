@@ -84,7 +84,7 @@ Set a `headerHeight` taller than the hero content and give the hero's root
   headerHeight={450}
   autoHeight
   header={
-    <View style={{ flexGrow: 1, minHeight: 280, justifyContent: 'flex-end' }}>
+    <View style={{ flexGrow: 1, justifyContent: 'flex-end' }}>
       <HeaderCarousel images={gallery} style={StyleSheet.absoluteFill} />
       {/* … */}
     </View>
@@ -94,8 +94,11 @@ Set a `headerHeight` taller than the hero content and give the hero's root
 
 Flexbox stretches a child across but never down, so without it the root keeps
 its own natural height: the carousel stops there and the rest of the 450 is
-bare background. `minHeight` still floors it for the no-`headerHeight` case
-above.
+bare background. The 450 itself belongs in `headerHeight` and nowhere else —
+the header floors the wrapper it measures with it, so `flexGrow` has the room
+to grow into and the number is never repeated in a style. A `minHeight` of
+your own is only for the no-`headerHeight` case above, where there is no floor
+to inherit.
 
 Use `flexGrow: 1` and not the `flex: 1` shorthand, which also sets
 `flexBasis: 0`. With no `headerHeight` the hero is auto-height, so there is no
@@ -206,7 +209,7 @@ import { HeaderCarousel, ParallaxHeader } from '@ramijd/parallax-header-tabs';
 <ParallaxHeader
   headerHeight={280}
   header={
-    <View style={{ minHeight: 280, justifyContent: 'flex-end' }}>
+    <View style={{ flexGrow: 1, justifyContent: 'flex-end' }}>
       <HeaderCarousel
         images={[uriA, uriB, require('./local.jpg')]}
         style={StyleSheet.absoluteFill}
