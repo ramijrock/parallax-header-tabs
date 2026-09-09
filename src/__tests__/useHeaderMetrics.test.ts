@@ -52,6 +52,30 @@ describe('useHeaderMetrics', () => {
     expect(result.current.tabBarTop - result.current.collapseDistance).toBe(92);
   });
 
+  it('starts the body below the strip the banner keeps', () => {
+    const { result } = renderHook(() =>
+      useHeaderMetrics({ ...base, stickyTopInset: 44, bannerHeight: 48 })
+    );
+    // Clipped at the pinned top, so content scrolled past full collapse stops
+    // there instead of sliding on up behind a translucent banner...
+    expect(result.current.bodyTop).toBe(92);
+    // ...and the padding gives back exactly what the clip took, so the first
+    // row still lands on the same pixel.
+    expect(result.current.bodyTop + result.current.bodyPaddingTop).toBe(
+      result.current.contentPaddingTop
+    );
+  });
+
+  it('never asks the body for negative padding', () => {
+    const { result } = renderHook(() =>
+      useHeaderMetrics({ ...base, headerHeight: 40, stickyTopInset: 100 })
+    );
+    // A hero shorter than the chrome above it: the viewport gives up the clip
+    // rather than pull the content up by a negative padding.
+    expect(result.current.bodyPaddingTop).toBe(0);
+    expect(result.current.bodyTop).toBe(result.current.contentPaddingTop);
+  });
+
   it('never reports a negative collapse distance', () => {
     const { result } = renderHook(() =>
       useHeaderMetrics({ ...base, headerHeight: 40, stickyTopInset: 100 })

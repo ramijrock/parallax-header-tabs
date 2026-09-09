@@ -39,6 +39,14 @@ export interface HeaderMetrics {
   subTabBarTop: number;
   /** Free space the body must leave for the hero and the bars. */
   contentPaddingTop: number;
+  /**
+   * Top of the clipped body viewport — where the tab bar comes to rest, so the
+   * body is never drawn on the strip the banner keeps. Never below the content
+   * itself, which keeps `bodyPaddingTop` from going negative.
+   */
+  bodyTop: number;
+  /** `contentPaddingTop` less the space the viewport already starts past. */
+  bodyPaddingTop: number;
   /** Wire to the hero wrapper's `onLayout` when `autoHeight` is on. */
   onHeaderLayout: (event: LayoutChangeEvent) => void;
 }
@@ -89,6 +97,8 @@ export const useHeaderMetrics = ({
       autoHeight && measured != null ? Math.max(floor, measured) : configured;
     const subTabHeight = hasSubTabs ? tabBarHeight : 0;
     const pinnedTop = stickyTopInset + bannerHeight;
+    const contentPaddingTop = heroHeight + tabBarHeight + subTabHeight;
+    const bodyTop = Math.min(pinnedTop, contentPaddingTop);
 
     return {
       heroHeight,
@@ -97,7 +107,9 @@ export const useHeaderMetrics = ({
       tabBarTop: heroHeight,
       pinnedTop,
       subTabBarTop: heroHeight + tabBarHeight,
-      contentPaddingTop: heroHeight + tabBarHeight + subTabHeight,
+      contentPaddingTop,
+      bodyTop,
+      bodyPaddingTop: contentPaddingTop - bodyTop,
       onHeaderLayout,
     };
   }, [

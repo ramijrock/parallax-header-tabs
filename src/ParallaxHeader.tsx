@@ -121,8 +121,13 @@ export const ParallaxHeader = forwardRef<
     const bannerShown = useRef(false);
     const endReached = useRef(false);
 
-    const { collapseDistance, tabBarTop, subTabBarTop, contentPaddingTop } =
-      metrics;
+    const {
+      collapseDistance,
+      tabBarTop,
+      subTabBarTop,
+      bodyTop,
+      bodyPaddingTop,
+    } = metrics;
     // An interpolation needs a rising input range even before the hero has
     // been measured, when the distance can legitimately be zero.
     const span = Math.max(1, collapseDistance);
@@ -279,27 +284,38 @@ export const ParallaxHeader = forwardRef<
           </View>
         </Animated.View>
 
-        <Animated.ScrollView
-          ref={scrollRef}
-          testID={testID ? `${testID}-scroll` : undefined}
-          onScroll={onScrollEvent}
-          scrollEventThrottle={16}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingTop: contentPaddingTop }}
-          refreshControl={
-            onRefresh ? (
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                progressViewOffset={contentPaddingTop}
-              />
-            ) : undefined
-          }
-        >
-          {/* Opaque, so it occludes the hero as it rises past it. */}
-          <View style={{ backgroundColor: theme.background }}>{children}</View>
-        </Animated.ScrollView>
+        {/* Clipped to start where the bars come to rest, and given back in
+            padding exactly what the clip takes, so every row lands on the same
+            pixel as before. Past full collapse the body would otherwise carry
+            on up into the banner's strip and show through it — the banner is a
+            scrim over the hero by design, and a translucent fill or a
+            `BannerBackground` blur let the passing content read straight
+            through. Above this line only the hero is ever drawn. */}
+        <View style={[styles.body, { top: bodyTop }]}>
+          <Animated.ScrollView
+            ref={scrollRef}
+            testID={testID ? `${testID}-scroll` : undefined}
+            onScroll={onScrollEvent}
+            scrollEventThrottle={16}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingTop: bodyPaddingTop }}
+            refreshControl={
+              onRefresh ? (
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  progressViewOffset={bodyPaddingTop}
+                />
+              ) : undefined
+            }
+          >
+            {/* Opaque, so it occludes the hero as it rises past it. */}
+            <View style={{ backgroundColor: theme.background }}>
+              {children}
+            </View>
+          </Animated.ScrollView>
+        </View>
 
         {hasTabs ? (
           <Animated.View
@@ -414,6 +430,15 @@ ParallaxHeader.displayName = 'ParallaxHeader';
 const styles = StyleSheet.create({
   root: { flex: 1, overflow: 'hidden' },
   hero: { position: 'absolute', top: 0, left: 0, right: 0 },
+  // `top` comes from the metrics; the clip is what keeps the body off the
+  // strip the pinned bars and the banner own.
+  body: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+  },
   bar: {
     position: 'absolute',
     left: 0,

@@ -142,6 +142,30 @@ describe('ParallaxHeader', () => {
     expect(screen.getByTestId('ph-tab-bar').props.style.top).toBe(300);
   });
 
+  it('backs the banner with an opaque base, inset included', () => {
+    render(
+      <ParallaxHeader
+        testID="ph"
+        title="Panthera tigris"
+        theme={{ background: '#f4f5f7' }}
+        stickyTopInset={44}
+        bannerHeight={48}
+        header={<Text>Hero</Text>}
+        tabs={tabs}
+      />
+    );
+    const base = screen.getByTestId('ph-banner-base', {
+      includeHiddenElements: true,
+    });
+    const style = StyleSheet.flatten(base.props.style);
+    // The hero comes to rest behind this strip, and the fill over it is a
+    // translucent scrim — or a blur — so without the base it shows through.
+    expect(style.backgroundColor).toBe('#f4f5f7');
+    // Absolute, so it covers the inset the banner only pads.
+    expect(style.top).toBe(0);
+    expect(style.bottom).toBe(0);
+  });
+
   it('keeps the header controls above the banner and out of the hero', () => {
     render(
       <ParallaxHeader
