@@ -1,5 +1,6 @@
 import React, {
   forwardRef,
+  memo,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -40,158 +41,201 @@ export interface TabStripProps {
 const INDICATOR_HEIGHT = 2;
 const SLIDE_DURATION = 240;
 
+interface TabButtonProps {
+  tab: TabItem;
+  isActive: boolean;
+  fill?: boolean;
+  textColor: string;
+  activeTextColor: string;
+  onSelect: (key: string) => void;
+  onMeasure: (key: string, x: number, width: number, active: boolean) => void;
+}
+
+/**
+ * One tab. Memoised on its own, so a selection change redraws the two tabs
+ * whose state flipped rather than every tab in the strip.
+ */
+const TabButton = memo(
+  ({
+    tab,
+    isActive,
+    fill,
+    textColor,
+    activeTextColor,
+    onSelect,
+    onMeasure,
+  }: TabButtonProps) => (
+    <TouchableOpacity
+      accessibilityRole="tab"
+      accessibilityState={{ selected: isActive }}
+      accessibilityLabel={tab.title}
+      onLayout={(event: LayoutChangeEvent) => {
+        const { x, width } = event.nativeEvent.layout;
+        onMeasure(tab.key, x, width, isActive);
+      }}
+      onPress={() => onSelect(tab.key)}
+      style={[styles.tab, fill && styles.tabFill]}
+    >
+      {isActive ? (tab.activeIcon ?? tab.icon) : tab.icon}
+      <Text
+        numberOfLines={1}
+        style={[
+          styles.label,
+          { color: isActive ? activeTextColor : textColor },
+          (tab.activeIcon ?? tab.icon) ? styles.labelWithIcon : null,
+        ]}
+      >
+        {tab.title}
+      </Text>
+    </TouchableOpacity>
+  )
+);
+
+TabButton.displayName = 'TabButton';
+
 /**
  * Both the tab bar and the sub tab bar are this component. Sharing it is what
  * keeps the two from drifting apart — the original pair were copies, and the
  * sub tab bar ended up measuring its trailing gap against the *main* tab count.
  */
-export const TabStrip = forwardRef<TabStripHandle, TabStripProps>(
-  (
-    { tabs, activeKey, onSelect, theme, height, leading, fill, testID },
-    ref
-  ) => {
-    const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
-    // Real geometry, captured as each tab lays out. Centring and the sliding
-    // indicator both work off measured values, so they stay correct for any
-    // font, locale or padding — a fixed per-tab width estimate cannot.
-    const layouts = useRef<Record<string, { x: number; width: number }>>({});
-    const viewportWidth = useRef(0);
+export const TabStrip = memo(
+  forwardRef<TabStripHandle, TabStripProps>(
+    (
+      { tabs, activeKey, onSelect, theme, height, leading, fill, testID },
+      ref
+    ) => {
+      const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+      // Real geometry, captured as each tab lays out. Centring and the sliding
+      // indicator both work off measured values, so they stay correct for any
+      // font, locale or padding — a fixed per-tab width estimate cannot.
+      const layouts = useRef<Record<string, { x: number; width: number }>>({});
+      const viewportWidth = useRef(0);
 
-    // The bar is one pixel wide and stretched to the active tab, so both the
-    // slide and the resize are transforms and can run on the native driver.
-    // That matters here: a tab press re-renders the body, and a JS-driven
-    // animation would stutter behind that work.
-    const translateX = useRef(new Animated.Value(0)).current;
-    const scaleX = useRef(new Animated.Value(0)).current;
-    // Stays 0 — invisible — until a measurement lands, so the bar never
-    // flashes at the far left on the first frame.
-    const placed = useRef(false);
+      // The bar is one pixel wide and stretched to the active tab, so both the
+      // slide and the resize are transforms and can run on the native driver.
+      // That matters here: a tab press re-renders the body, and a JS-driven
+      // animation would stutter behind that work.
+      const translateX = useRef(new Animated.Value(0)).current;
+      const scaleX = useRef(new Animated.Value(0)).current;
+      // Stays 0 — invisible — until a measurement lands, so the bar never
+      // flashes at the far left on the first frame.
+      const placed = useRef(false);
 
-    const moveIndicator = useCallback(
-      (key: string | undefined, animated: boolean) => {
-        const layout = key ? layouts.current[key] : undefined;
-        if (!layout || layout.width <= 0) return;
-        // A unit-wide bar scales about its own centre, so aim the centre at
-        // the tab's centre rather than its left edge.
-        const x = layout.x + layout.width / 2 - 0.5;
-        // Only slide between two positions we have actually drawn. The first
-        // placement, and any later relayout (rotation, a font change), snap.
-        if (!animated || !placed.current) {
-          placed.current = true;
-          translateX.setValue(x);
-          scaleX.setValue(layout.width);
-          return;
-        }
-        Animated.parallel([
-          Animated.timing(translateX, {
-            toValue: x,
-            duration: SLIDE_DURATION,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-          Animated.timing(scaleX, {
-            toValue: layout.width,
-            duration: SLIDE_DURATION,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-          }),
-        ]).start();
-      },
-      [scaleX, translateX]
-    );
+      const moveIndicator = useCallback(
+        (key: string | undefined, animated: boolean) => {
+          const layout = key ? layouts.current[key] : undefined;
+          if (!layout || layout.width <= 0) return;
+          // A unit-wide bar scales about its own centre, so aim the centre at
+          // the tab's centre rather than its left edge.
+          const x = layout.x + layout.width / 2 - 0.5;
+          // Only slide between two positions we have actually drawn. The first
+          // placement, and any later relayout (rotation, a font change), snap.
+          if (!animated || !placed.current) {
+            placed.current = true;
+            translateX.setValue(x);
+            scaleX.setValue(layout.width);
+            return;
+          }
+          Animated.parallel([
+            Animated.timing(translateX, {
+              toValue: x,
+              duration: SLIDE_DURATION,
+              easing: Easing.out(Easing.cubic),
+              useNativeDriver: true,
+            }),
+            Animated.timing(scaleX, {
+              toValue: layout.width,
+              duration: SLIDE_DURATION,
+              easing: Easing.out(Easing.cubic),
+              useNativeDriver: true,
+            }),
+          ]).start();
+        },
+        [scaleX, translateX]
+      );
 
-    useEffect(() => {
-      moveIndicator(activeKey, true);
-    }, [activeKey, moveIndicator, tabs]);
+      useEffect(() => {
+        moveIndicator(activeKey, true);
+      }, [activeKey, moveIndicator, tabs]);
 
-    const scrollToKey = useCallback((key: string) => {
-      const layout = layouts.current[key];
-      const viewport = viewportWidth.current;
-      if (!layout || viewport <= 0) return;
-      scrollRef.current?.scrollTo({
-        x: Math.max(0, layout.x + layout.width / 2 - viewport / 2),
-        animated: true,
-      });
-    }, []);
+      const scrollToKey = useCallback((key: string) => {
+        const layout = layouts.current[key];
+        const viewport = viewportWidth.current;
+        if (!layout || viewport <= 0) return;
+        scrollRef.current?.scrollTo({
+          x: Math.max(0, layout.x + layout.width / 2 - viewport / 2),
+          animated: true,
+        });
+      }, []);
 
-    useImperativeHandle(ref, () => ({ scrollToKey }), [scrollToKey]);
+      useImperativeHandle(ref, () => ({ scrollToKey }), [scrollToKey]);
 
-    const onViewportLayout = useCallback((event: LayoutChangeEvent) => {
-      viewportWidth.current = event.nativeEvent.layout.width;
-    }, []);
+      const onViewportLayout = useCallback((event: LayoutChangeEvent) => {
+        viewportWidth.current = event.nativeEvent.layout.width;
+      }, []);
 
-    // Built once per theme rather than per render, so the strip does not
-    // allocate a fresh style object on every frame.
-    const barStyle = useMemo(
-      () => ({ backgroundColor: theme.indicator }),
-      [theme.indicator]
-    );
+      // Measurements arrive after the effect above, and a tab can move without
+      // the selection changing, so the active tab re-aims the bar as it lands.
+      const onMeasure = useCallback(
+        (key: string, x: number, width: number, active: boolean) => {
+          layouts.current[key] = { x, width };
+          if (active) moveIndicator(key, false);
+        },
+        [moveIndicator]
+      );
 
-    return (
-      <View
-        style={[styles.row, { height, backgroundColor: theme.surface }]}
-        testID={testID}
-      >
-        {leading}
-        <ScrollView
-          ref={scrollRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          onLayout={onViewportLayout}
-          contentContainerStyle={fill ? styles.fill : undefined}
-          style={styles.flex}
+      // Built once per theme rather than per render, so the strip does not
+      // allocate a fresh style object on every frame.
+      const barStyle = useMemo(
+        () => ({ backgroundColor: theme.indicator }),
+        [theme.indicator]
+      );
+
+      return (
+        <View
+          style={[styles.row, { height, backgroundColor: theme.surface }]}
+          testID={testID}
         >
-          {tabs.map((tab) => {
-            const isActive = tab.key === activeKey;
-            return (
-              <TouchableOpacity
+          {leading}
+          <ScrollView
+            ref={scrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            onLayout={onViewportLayout}
+            contentContainerStyle={fill ? styles.fill : undefined}
+            style={styles.flex}
+          >
+            {tabs.map((tab) => (
+              <TabButton
                 // Keyed by identity, not position, so a reorder moves rows
                 // instead of recycling the wrong one into place.
                 key={tab.key}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: isActive }}
-                accessibilityLabel={tab.title}
-                onLayout={(event: LayoutChangeEvent) => {
-                  const { x, width } = event.nativeEvent.layout;
-                  layouts.current[tab.key] = { x, width };
-                  // Measurements arrive after the effect above, and a tab can
-                  // move without the selection changing, so the active tab
-                  // re-aims the bar as it lands.
-                  if (tab.key === activeKey) moveIndicator(tab.key, false);
-                }}
-                onPress={() => onSelect(tab.key)}
-                style={[styles.tab, fill && styles.tabFill]}
-              >
-                {isActive ? (tab.activeIcon ?? tab.icon) : tab.icon}
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.label,
-                    { color: isActive ? theme.activeText : theme.text },
-                    (tab.activeIcon ?? tab.icon) ? styles.labelWithIcon : null,
-                  ]}
-                >
-                  {tab.title}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-          {/* Inside the scrollable content, so it tracks the tabs when the
+                tab={tab}
+                isActive={tab.key === activeKey}
+                fill={fill}
+                textColor={theme.text}
+                activeTextColor={theme.activeText}
+                onSelect={onSelect}
+                onMeasure={onMeasure}
+              />
+            ))}
+            {/* Inside the scrollable content, so it tracks the tabs when the
               strip is scrolled without any offset bookkeeping. */}
-          <Animated.View
-            pointerEvents="none"
-            testID={testID ? `${testID}-indicator` : undefined}
-            style={[
-              styles.indicator,
-              barStyle,
-              { transform: [{ translateX }, { scaleX }] },
-            ]}
-          />
-        </ScrollView>
-      </View>
-    );
-  }
+            <Animated.View
+              pointerEvents="none"
+              testID={testID ? `${testID}-indicator` : undefined}
+              style={[
+                styles.indicator,
+                barStyle,
+                { transform: [{ translateX }, { scaleX }] },
+              ]}
+            />
+          </ScrollView>
+        </View>
+      );
+    }
+  )
 );
 
 TabStrip.displayName = 'TabStrip';

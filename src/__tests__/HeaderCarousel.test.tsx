@@ -1,5 +1,11 @@
 import { createRef } from 'react';
-import { Image, StyleSheet } from 'react-native';
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { render, screen, fireEvent, act } from '@testing-library/react-native';
 import {
   HeaderCarousel,
@@ -40,13 +46,42 @@ describe('HeaderCarousel', () => {
   it('renders one slide per image, sized to the measured width', () => {
     render(<HeaderCarousel images={images} testID="carousel" />);
     layOut();
-    const slides = screen.UNSAFE_getAllByType(Image);
+    // Pictures and place-holders alike: every slot the paging counts on.
+    const slides = screen.UNSAFE_getByType(ScrollView).props.children as {
+      props: { style: StyleProp<ViewStyle> };
+    }[];
     expect(slides).toHaveLength(3);
-    expect(slides.map((slide) => slide.props.style[1].width)).toEqual([
-      WIDTH,
-      WIDTH,
-      WIDTH,
-    ]);
+    expect(
+      slides.map((slide) => StyleSheet.flatten(slide.props.style)?.width)
+    ).toEqual([WIDTH, WIDTH, WIDTH]);
+  });
+
+  it('draws only the images near the current one', () => {
+    const many = Array.from({ length: 12 }, (_, i) => `${i}.jpg`);
+    render(<HeaderCarousel images={many} testID="carousel" />);
+    layOut();
+    const sources = () =>
+      screen
+        .UNSAFE_getAllByType(Image)
+        .map((slide) => (slide.props.source as { uri: string }).uri);
+    expect(sources()).toEqual(['0.jpg', '1.jpg']);
+
+    settleAt(WIDTH);
+    expect(sources()).toEqual(['0.jpg', '1.jpg', '2.jpg']);
+  });
+
+  it('draws every slide a jump passes over, and keeps them', () => {
+    const many = Array.from({ length: 12 }, (_, i) => `${i}.jpg`);
+    const ref = createRef<HeaderCarouselHandle>();
+    render(<HeaderCarousel ref={ref} images={many} testID="carousel" />);
+    layOut();
+
+    act(() => ref.current?.scrollToIndex(5));
+    expect(screen.UNSAFE_getAllByType(Image)).toHaveLength(7);
+
+    // Back to the start: nothing seen is dropped again.
+    act(() => ref.current?.scrollToIndex(0));
+    expect(screen.UNSAFE_getAllByType(Image)).toHaveLength(7);
   });
 
   it('sizes itself from a ratio, so the images can drive the header height', () => {
@@ -64,7 +99,7 @@ describe('HeaderCarousel', () => {
     const heights = screen
       .UNSAFE_getAllByType(Image)
       .map((slide) => StyleSheet.flatten(slide.props.style).height);
-    expect(heights).toEqual([WIDTH / 1.5, WIDTH / 1.5, WIDTH / 1.5]);
+    expect(heights).toEqual([WIDTH / 1.5, WIDTH / 1.5]);
   });
 
   it('lets an explicit height win over the ratio', () => {

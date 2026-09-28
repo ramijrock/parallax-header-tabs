@@ -199,6 +199,7 @@ so the hero underneath still takes a swipe.
 | `empty`                    | `boolean`                      | Draw the empty state instead of the body                                    |
 | `emptyText`                | `string`                       | Its message, `No data found` by default                                     |
 | `renderEmpty`              | `() => ReactNode`              | Replaces the empty state entirely                                           |
+| `renderScrollComponent`    | render prop                    | Own the body's scroller — a `FlatList` that really virtualises              |
 | `title`                    | `string`                       | Shown in the collapsed banner                                               |
 | `bannerHeight`             | `number`                       | Banner height, `48` by default. The pinned tab bar sits directly beneath it |
 | `renderBanner`             | `() => ReactNode`              | Replaces the banner body                                                    |
@@ -327,6 +328,135 @@ move them with `paginationStyle`:
   paginationStyle={{ bottom: 16, justifyContent: 'flex-end', paddingRight: 16 }}
 />
 ```
+
+## A FlatList as the body
+
+`children` go inside the package's `ScrollView`, so a `FlatList` in there is a
+list nested in a scroll view: React Native warns about it, and it is right to
+— the outer view has no bounded height to virtualise against, so every row is
+rendered and kept, and `windowSize`, `initialNumToRender` and
+`removeClippedSubviews` all stop meaning anything. On a long list that is the
+whole cost of the screen.
+
+The fix is not to nest at all: make the list _be_ the scroller.
+`renderScrollComponent` hands you the very props the built-in `ScrollView`
+gets — spread them onto an `Animated.FlatList` and it drives the header
+itself.
+
+```tsx
+import { Animated } from 'react-native';
+
+<ParallaxHeader
+  header={<Hero />}
+  headerHeight={300}
+  tabs={tabs}
+  title="Panthera tigris"
+  stickyTopInset={insets.top}
+  onRefresh={refetch}
+  refreshing={isRefetching}
+  onEndReached={loadMore}
+  renderScrollComponent={({ scrollProps, emptyComponent }) => (
+    <Animated.FlatList
+      {...scrollProps}
+      data={rows}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => <Row item={item} />}
+      ListEmptyComponent={emptyComponent}
+      windowSize={9}
+      removeClippedSubviews
+    />
+  )}
+/>;
+```
+
+Nothing about the layout changes, because nothing about the layout ever
+depended on the scroller: the hero, the bars and the banner are absolutely
+positioned **siblings** of it, never children. Only what scrolls is swapped.
+
+Four things to keep:
+
+- **`Animated.FlatList`**, not `FlatList`. `onScroll` is a native-driven
+  `Animated.event`, and a plain component cannot take one.
+- **spread, do not pick**. `contentContainerStyle` carries the space the hero
+  and the bars reserve; drop it and the first row hides under them.
+- **`ListEmptyComponent={emptyComponent}`** keeps the empty state you already
+  had, sized to the space below the bars. `empty`, `emptyText` and
+  `renderEmpty` all still feed it.
+- **`children` is ignored** while this is set. The list owns the body.
+
+`onEndReached`, `onRefresh`, `onScroll`, the banner and `ref.scrollToTop()`
+all keep working — the ref reaches a list by offset and a scroll view by
+point, whichever is behind it. The list's own `onEndReached` is yours to use
+as well; the two do not collide.
+
+A `SectionList` works the same way through `Animated.SectionList`, as does any
+scrollable that takes `ScrollView` props — a `FlashList`, a reanimated list.
+
+## A pager for the body
+
+`react-native-pager-view` cannot go inside the body's scroll view either: it
+needs a bounded height, and a vertical scroll view gives it none. It goes
+where the list goes — as the scroller itself, one `Animated.FlatList` per
+page.
+
+Two things the package cannot do for you, because they are about pages it
+knows nothing of:
+
+1. **one ref per page**, so you can scroll each one. Spread `scrollProps`
+   first and put your own `ref` after it.
+2. **bring a page into step on arrival.** Every page shares one `scrollY`, so
+   a page still at the top while the header is collapsed would jump. Clamp the
+   others to `collapseDistance` when the page changes.
+
+```tsx
+const pages = tabs.map(() => useRef<FlatList<Row>>(null)); // or a ref map
+const offset = useRef(0);
+
+<ParallaxHeader
+  tabs={tabs}
+  activeTabKey={tabs[page].key}
+  onTabChange={(_, index) => pagerRef.current?.setPage(index)}
+  onScroll={(y) => (offset.current = y)}
+  renderScrollComponent={({ scrollProps, collapseDistance }) => (
+    <PagerView
+      ref={pagerRef}
+      style={StyleSheet.absoluteFill}
+      initialPage={0}
+      onPageSelected={(e) => {
+        const next = e.nativeEvent.position;
+        setPage(next);
+        // Everything the reader has not scrolled past is shared: bring the
+        // page they land on up to the same collapse, no further.
+        const y = Math.min(offset.current, collapseDistance);
+        pages.forEach((r, i) => {
+          if (i !== next)
+            r.current?.scrollToOffset({ offset: y, animated: false });
+        });
+      }}
+    >
+      {tabs.map((tab, i) => (
+        <View key={tab.key} collapsable={false}>
+          <Animated.FlatList
+            {...scrollProps}
+            ref={pages[i]}
+            data={dataFor(tab.key)}
+            renderItem={({ item }) => <Row item={item} />}
+          />
+        </View>
+      ))}
+    </PagerView>
+  )}
+/>;
+```
+
+`scrollProps.onScroll` is safe to put on every page at once — whichever page
+is on screen is the only one moving, so the header follows the page in view.
+Overriding `scrollProps.ref` is what costs you `ref.scrollTo()` and
+`ref.scrollToTop()` on the header: with pages of your own to scroll, call
+`scrollToOffset` on the page you mean instead.
+
+Without a pager, none of this applies — tabs swap the list's `data` and the
+scroll position is simply kept, which is what the example app does.
 
 ## Bringing your own blur, icons and gestures
 
