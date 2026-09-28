@@ -177,7 +177,7 @@ so the hero underneath still takes a swipe.
 | `headerLeft`     | `ReactNode` | —       | Pinned left of the top strip — a back button                             |
 | `headerRight`    | `ReactNode` | —       | Pinned right of the same strip — a "more" control                        |
 | `parallaxFactor` | `number`    | `0.5`   | `0` pins the hero, `1` scrolls it at full speed                          |
-| `stickyTopInset` | `number`    | `0`     | Where the collapsed chrome rests — your safe area + nav bar              |
+| `stickyTopInset` | `number`    | `0`     | Where collapsed chrome rests — safe area + nav bar (see `/safe-area`)    |
 | `tabBarHeight`   | `number`    | `48`    |                                                                          |
 
 ### Tabs
@@ -457,6 +457,34 @@ Overriding `scrollProps.ref` is what costs you `ref.scrollTo()` and
 
 Without a pager, none of this applies — tabs swap the list's `data` and the
 scroll position is simply kept, which is what the example app does.
+
+## Safe area insets
+
+`stickyTopInset` is yours to pass, so the main entry imports nothing native.
+If the app already has
+[`react-native-safe-area-context`](https://github.com/AppAndFlow/react-native-safe-area-context)
+— Expo Router and React Navigation both bring it — import from `/safe-area`
+instead and the inset is filled in for you:
+
+```tsx
+import { ParallaxHeader } from '@ramijd/parallax-header-tabs/safe-area';
+
+<ParallaxHeader title="Panthera tigris" header={<Hero />} tabs={tabs} />;
+```
+
+It is the same component with one default changed: `stickyTopInset` becomes
+the safe area's top inset. Everything else the main entry exports is
+re-exported, so one import line covers the screen.
+
+- **An explicit `stickyTopInset` still wins.** Under a navigator's own header,
+  which already clears the notch, pass `stickyTopInset={0}`; with a fixed nav
+  bar of your own, pass `insets.top + navBarHeight`.
+- **No `SafeAreaProvider`, no crash.** The inset falls back to `0`, as it
+  would from the main entry.
+- **Why a separate entry.** An optional `require` inside `try` would not keep
+  the main entry safe: stock Metro, unlike Expo's, refuses to bundle a module
+  it cannot resolve. Only screens that import from `/safe-area` need the
+  package installed; it is an optional peer.
 
 ## Bringing your own blur, icons and gestures
 

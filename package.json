@@ -15,6 +15,11 @@
       "types": "./lib/typescript/src/compat/index.d.ts",
       "default": "./lib/module/compat/index.js"
     },
+    "./safe-area": {
+      "ramijd-parallax-header-tabs-source": "./src/safe-area/index.tsx",
+      "types": "./lib/typescript/src/safe-area/index.d.ts",
+      "default": "./lib/module/safe-area/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -90,13 +95,20 @@
     "react": "19.2.0",
     "react-native": "0.83.10",
     "react-native-builder-bob": "^0.43.0",
+    "react-native-safe-area-context": "~5.6.2",
     "react-test-renderer": "19.2.0",
     "turbo": "^2.9.16",
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
     "react": "*",
-    "react-native": "*"
+    "react-native": "*",
+    "react-native-safe-area-context": "*"
+  },
+  "peerDependenciesMeta": {
+    "react-native-safe-area-context": {
+      "optional": true
+    }
   },
   "workspaces": [
     "example"
