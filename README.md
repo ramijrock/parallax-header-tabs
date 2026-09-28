@@ -221,7 +221,7 @@ so the hero underneath still takes a swipe.
 | Prop                | Type             | Default |                                            |
 | ------------------- | ---------------- | ------- | ------------------------------------------ |
 | `overflowThreshold` | `number`         | `4`     | Show the list button past this many tabs   |
-| `onTabsReorder`     | `(tabs) => void` | —       | Enables reordering; published on close     |
+| `onTabsReorder`     | `(tabs) => void` | —       | Drag to reorder; published on close        |
 | `renderTabList`     | render prop      | —       | Swap in your own list — drag and drop, say |
 
 ### Ref
@@ -507,8 +507,12 @@ import * as Haptics from 'expo-haptics';
 />;
 ```
 
-Drag-and-drop reordering, if you want it, plugs into `renderTabList` — so
-`react-native-draggable-flatlist` stays your dependency, not the package's.
+With `onTabsReorder` set, each row in the sheet gets a grip on its left: drag
+a row by it to move it. The drag runs on React Native's own `PanResponder`,
+so there is still no gesture library to install. A screen reader, which
+cannot drag, gets "Move up" and "Move down" actions on the grip instead. The new order is staged while the
+sheet is open and published on close. For a different list altogether —
+`react-native-draggable-flatlist`, say — hand it to `renderTabList`.
 
 ## Migrating from the in-app ParallaxHeader
 

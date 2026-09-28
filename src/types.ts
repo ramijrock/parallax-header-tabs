@@ -238,9 +238,9 @@ export interface ParallaxHeaderProps {
    */
   onTabsReorder?: (tabs: TabItem[]) => void;
   /**
-   * Replaces the sheet's list. Supply this to plug in a drag-and-drop list
-   * (react-native-draggable-flatlist, say) without the package depending on
-   * one. Call `select` to pick a tab and `commit` to publish a new order.
+   * Replaces the sheet's list, drag grips included. Supply this to plug in a
+   * list of your own (react-native-draggable-flatlist, say) without the
+   * package depending on one. Call `select` to pick a tab and `commit` to publish a new order.
    */
   renderTabList?: (args: {
     tabs: TabItem[];

@@ -101,11 +101,15 @@ describe('ParallaxHeader', () => {
     const onTabsReorder = jest.fn();
     render(<ParallaxHeader tabs={many} onTabsReorder={onTabsReorder} />);
     fireEvent.press(screen.getByLabelText('Show all tabs'));
-    fireEvent.press(screen.getByLabelText('Move Tab 1 up'));
+    fireEvent(screen.getByLabelText('Reorder Tab 1'), 'accessibilityAction', {
+      nativeEvent: { actionName: 'moveUp' },
+    });
     // Staged while open, published on close — the visible bar never shuffles
     // under the finger.
     expect(onTabsReorder).not.toHaveBeenCalled();
-    fireEvent.press(screen.getByLabelText('Move Tab 1 up'));
+    fireEvent(screen.getByLabelText('Reorder Tab 1'), 'accessibilityAction', {
+      nativeEvent: { actionName: 'moveUp' },
+    });
     expect(onTabsReorder).not.toHaveBeenCalled();
   });
 
