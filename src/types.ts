@@ -1,5 +1,11 @@
-import type { ReactNode, ComponentType } from 'react';
-import type { StyleProp, ViewStyle } from 'react-native';
+import type { ReactElement, ReactNode, ComponentType, Ref } from 'react';
+import type {
+  Animated,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  StyleProp,
+  ViewStyle,
+} from 'react-native';
 
 /** A tab in the sticky bar. `key` identifies it — never the array index. */
 export interface TabItem {
@@ -38,6 +44,51 @@ export interface ParallaxHeaderTheme {
 export interface BannerBackgroundProps {
   style?: StyleProp<ViewStyle>;
   children?: ReactNode;
+}
+
+/**
+ * Everything the body's scroller needs, ready to spread onto one of your own.
+ *
+ * The props are the very ones the built-in `ScrollView` is given, so a
+ * `FlatList` wearing them scrolls, refreshes, pages and collapses the header
+ * exactly as the built-in body does.
+ */
+export interface ParallaxScrollProps {
+  /**
+   * Deliberately loose: the same object is spread onto a `ScrollView`, a
+   * `FlatList` or a `SectionList`, and a ref typed to any one of them is not
+   * assignable to the others.
+   */
+  ref: Ref<any>;
+  /** The native-driven `Animated.event`. Needs an `Animated.*` component. */
+  onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  scrollEventThrottle: number;
+  /** Carries the space the hero and the bars reserve. Do not drop it. */
+  contentContainerStyle: { paddingTop: number };
+  /** Present only when `onRefresh` was given. */
+  refreshControl?: ReactElement;
+  keyboardShouldPersistTaps: 'handled';
+  showsVerticalScrollIndicator: boolean;
+  testID?: string;
+}
+
+/** Handed to `renderScrollComponent`. */
+export interface ParallaxScrollRenderArgs {
+  scrollProps: ParallaxScrollProps;
+  /**
+   * The built-in empty state, already sized to the space below the bars.
+   * Hand it to `ListEmptyComponent` to keep the empty screen you had.
+   */
+  emptyComponent: ReactElement;
+  /**
+   * The shared offset every part of the header reads. A second scroller —
+   * one page of a pager — can be brought into step by reading it.
+   */
+  scrollY: Animated.Value;
+  /** How far the body scrolls before the tab bar pins. */
+  collapseDistance: number;
+  /** The space the hero and the bars reserve — `contentContainerStyle`'s. */
+  contentPaddingTop: number;
 }
 
 export interface ParallaxHeaderHandle {
@@ -136,6 +187,17 @@ export interface ParallaxHeaderProps {
   emptyText?: string;
   /** Replaces the built-in empty state entirely. */
   renderEmpty?: () => ReactNode;
+  /**
+   * Render the body's scroller yourself, so a `FlatList` can *be* the scroll
+   * view instead of living inside one. Spread the `scrollProps` you are given
+   * onto an `Animated.FlatList` (or `Animated.SectionList`) and the list
+   * virtualises properly while the header behaves exactly as before — the
+   * hero and the bars are siblings of the scroller, never inside it, so
+   * nothing about the layout changes.
+   *
+   * `children` is ignored while this is set: the list owns the body.
+   */
+  renderScrollComponent?: (args: ParallaxScrollRenderArgs) => ReactNode;
 
   // ── Collapsed banner ────────────────────────────────────────────────────
   /** Shown in the banner once the header has collapsed. */

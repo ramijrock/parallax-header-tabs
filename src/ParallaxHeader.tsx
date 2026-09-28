@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type ComponentRef,
+  type Ref,
 } from 'react';
 import {
   Animated,
@@ -31,11 +32,22 @@ import { useTabs } from './useTabs';
 import type {
   ParallaxHeaderHandle,
   ParallaxHeaderProps,
+  ParallaxScrollProps,
   TabItem,
 } from './types';
 
 const BANNER_DURATION = 220;
 const EMPTY: TabItem[] = [];
+
+/**
+ * What the body's scroller might answer to. A `ScrollView` takes a point, a
+ * `VirtualizedList` an offset, and `renderScrollComponent` decides which of
+ * the two is behind the ref.
+ */
+interface ScrollableNode {
+  scrollTo?: (options: { y?: number; animated?: boolean }) => void;
+  scrollToOffset?: (options: { offset: number; animated?: boolean }) => void;
+}
 
 export const ParallaxHeader = forwardRef<
   ParallaxHeaderHandle,
@@ -68,6 +80,7 @@ export const ParallaxHeader = forwardRef<
       empty,
       emptyText = 'No data found',
       renderEmpty,
+      renderScrollComponent,
 
       title,
       renderBanner,
@@ -121,6 +134,11 @@ export const ParallaxHeader = forwardRef<
     const bannerProgress = useRef(new Animated.Value(0)).current;
 
     const [sheetVisible, setSheetVisible] = useState(false);
+    const openSheet = useCallback(() => {
+      onFeedback?.();
+      setSheetVisible(true);
+    }, [onFeedback]);
+    const closeSheet = useCallback(() => setSheetVisible(false), []);
 
     // Nothing to draw is a state of its own, not a blank page. `empty` is the
     // caller's word for it, and has to be: a body that renders its own nothing
@@ -146,6 +164,7 @@ export const ParallaxHeader = forwardRef<
 
     const {
       collapseDistance,
+      contentPaddingTop,
       tabBarTop,
       subTabBarTop,
       bodyTop,
@@ -163,6 +182,14 @@ export const ParallaxHeader = forwardRef<
           extrapolate: 'clamp',
         }),
       [scrollY, span, parallaxFactor]
+    );
+
+    // The content's own travel, for anything drawn behind a scroller of your
+    // own. Memoised: a fresh node every render would be a fresh native
+    // animation every render.
+    const contentTranslate = useMemo(
+      () => Animated.multiply(scrollY, -1),
+      [scrollY]
     );
 
     // Both bars share one translation, so they can never arrive out of step.
@@ -243,40 +270,101 @@ export const ParallaxHeader = forwardRef<
       return () => cancelAnimationFrame(frame);
     }, [mainTabs.activeKey, tabs]);
 
+    // The body is a `ScrollView` by default and whatever `renderScrollComponent`
+    // returns otherwise, and the two are scrolled by different methods. Asked
+    // for an offset, take whichever the node actually has.
+    const scrollToY = useCallback((y: number, animated: boolean) => {
+      const node = scrollRef.current as ScrollableNode | null;
+      if (!node) return;
+      if (typeof node.scrollToOffset === 'function') {
+        node.scrollToOffset({ offset: y, animated });
+        return;
+      }
+      node.scrollTo?.({ y, animated });
+    }, []);
+
     useImperativeHandle(
       ref,
       () => ({
         setTab: mainTabs.select,
         setSubTab: subTabState.select,
         scrollToTab: (key: string) => tabStripRef.current?.scrollToKey(key),
-        scrollTo: (y: number, animated = true) =>
-          scrollRef.current?.scrollTo({ y, animated }),
-        scrollToTop: (animated = true) =>
-          scrollRef.current?.scrollTo({ y: 0, animated }),
+        scrollTo: (y: number, animated = true) => scrollToY(y, animated),
+        scrollToTop: (animated = true) => scrollToY(0, animated),
       }),
-      [mainTabs.select, subTabState.select]
+      [mainTabs.select, subTabState.select, scrollToY]
     );
 
-    const overflowButton =
-      tabs.length > overflowThreshold ? (
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Show all tabs"
-          onPress={() => {
-            onFeedback?.();
-            setSheetVisible(true);
-          }}
-          style={styles.overflowButton}
+    // Lifted out of the tree so `renderScrollComponent` can hand it straight to
+    // a list's `ListEmptyComponent` — same element, same measurements.
+    // Memoised, so a list is not handed a new empty state on every render.
+    const emptyComponent = useMemo(
+      () => (
+        <View
+          testID={testID ? `${testID}-empty` : undefined}
+          style={[
+            styles.empty,
+            { minHeight: Math.max(0, bodyHeight - bodyPaddingTop) },
+          ]}
         >
-          {/* Drawn rather than typeset, so no icon font is required. */}
-          {[0, 1, 2].map((line) => (
-            <View
-              key={line}
-              style={[styles.overflowLine, { backgroundColor: theme.text }]}
-            />
-          ))}
-        </TouchableOpacity>
-      ) : null;
+          {renderEmpty ? (
+            renderEmpty()
+          ) : (
+            <Text style={[styles.emptyText, { color: theme.text }]}>
+              {emptyText}
+            </Text>
+          )}
+        </View>
+      ),
+      [testID, bodyHeight, bodyPaddingTop, renderEmpty, emptyText, theme.text]
+    );
+
+    // One object, spread onto the built-in scroller and onto yours alike, so
+    // the two can never drift apart. Memoised, so the scroller only sees new
+    // props when one of them has actually changed.
+    const scrollProps = useMemo<ParallaxScrollProps>(
+      () => ({
+        ref: scrollRef as Ref<any>,
+        testID: testID ? `${testID}-scroll` : undefined,
+        onScroll: onScrollEvent,
+        scrollEventThrottle: 16,
+        keyboardShouldPersistTaps: 'handled',
+        showsVerticalScrollIndicator: false,
+        contentContainerStyle: { paddingTop: bodyPaddingTop },
+        refreshControl: onRefresh ? (
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            progressViewOffset={bodyPaddingTop}
+          />
+        ) : undefined,
+      }),
+      [testID, onScrollEvent, bodyPaddingTop, onRefresh, refreshing]
+    );
+
+    // Memoised, as the tab strip it leads is: a fresh element here would
+    // redraw the whole strip on every render.
+    const hasOverflow = tabs.length > overflowThreshold;
+    const overflowButton = useMemo(
+      () =>
+        hasOverflow ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Show all tabs"
+            onPress={openSheet}
+            style={styles.overflowButton}
+          >
+            {/* Drawn rather than typeset, so no icon font is required. */}
+            {[0, 1, 2].map((line) => (
+              <View
+                key={line}
+                style={[styles.overflowLine, { backgroundColor: theme.text }]}
+              />
+            ))}
+          </TouchableOpacity>
+        ) : null,
+      [hasOverflow, openSheet, theme.text]
+    );
 
     return (
       <View
@@ -315,47 +403,44 @@ export const ParallaxHeader = forwardRef<
             `BannerBackground` blur let the passing content read straight
             through. Above this line only the hero is ever drawn. */}
         <View style={[styles.body, { top: bodyTop }]} onLayout={onBodyLayout}>
-          <Animated.ScrollView
-            ref={scrollRef}
-            testID={testID ? `${testID}-scroll` : undefined}
-            onScroll={onScrollEvent}
-            scrollEventThrottle={16}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingTop: bodyPaddingTop }}
-            refreshControl={
-              onRefresh ? (
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  progressViewOffset={bodyPaddingTop}
-                />
-              ) : undefined
-            }
-          >
-            {/* Opaque, so it occludes the hero as it rises past it. */}
-            <View style={{ backgroundColor: theme.background }}>
-              {isEmpty ? (
-                <View
-                  testID={testID ? `${testID}-empty` : undefined}
-                  style={[
-                    styles.empty,
-                    { minHeight: Math.max(0, bodyHeight - bodyPaddingTop) },
-                  ]}
-                >
-                  {renderEmpty ? (
-                    renderEmpty()
-                  ) : (
-                    <Text style={[styles.emptyText, { color: theme.text }]}>
-                      {emptyText}
-                    </Text>
-                  )}
-                </View>
-              ) : (
-                children
-              )}
-            </View>
-          </Animated.ScrollView>
+          {renderScrollComponent ? (
+            <>
+              {/* The built-in body occludes the hero with an opaque wrapper
+                  around its children. A list cannot be wrapped like that
+                  without breaking the virtualisation this path exists for, so
+                  the same fill is drawn behind it instead and moved with the
+                  content. It starts where the content does and is as tall as
+                  the hero and the bars together, which is all it ever has to
+                  cover: below that the root's own background is already
+                  behind the rows. */}
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  styles.backdrop,
+                  {
+                    top: bodyPaddingTop,
+                    height: contentPaddingTop,
+                    backgroundColor: theme.background,
+                    transform: [{ translateY: contentTranslate }],
+                  },
+                ]}
+              />
+              {renderScrollComponent({
+                scrollProps,
+                emptyComponent,
+                scrollY,
+                collapseDistance,
+                contentPaddingTop,
+              })}
+            </>
+          ) : (
+            <Animated.ScrollView {...scrollProps}>
+              {/* Opaque, so it occludes the hero as it rises past it. */}
+              <View style={{ backgroundColor: theme.background }}>
+                {isEmpty ? emptyComponent : children}
+              </View>
+            </Animated.ScrollView>
+          )}
         </View>
 
         {hasTabs ? (
@@ -452,7 +537,7 @@ export const ParallaxHeader = forwardRef<
 
         <TabOverflowSheet
           visible={sheetVisible}
-          onClose={() => setSheetVisible(false)}
+          onClose={closeSheet}
           tabs={tabs}
           activeKey={mainTabs.activeKey}
           onSelect={mainTabs.select}
@@ -480,6 +565,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     overflow: 'hidden',
   },
+  // Drawn before the scroller and so behind it. No `zIndex` — a negative one
+  // is the quickest way to lose a view outright on Android.
+  backdrop: { position: 'absolute', left: 0, right: 0 },
   bar: {
     position: 'absolute',
     left: 0,

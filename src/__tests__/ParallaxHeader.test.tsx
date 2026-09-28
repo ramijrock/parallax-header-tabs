@@ -1,5 +1,5 @@
-import { createRef } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { createRef, forwardRef, useImperativeHandle } from 'react';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { ParallaxHeader } from '../ParallaxHeader';
 import type { ParallaxHeaderHandle, TabItem } from '../types';
@@ -297,6 +297,118 @@ describe('ParallaxHeader', () => {
       screen.getByTestId('ph-empty').props.style
     );
     expect(style.minHeight).toBe(452);
+  });
+
+  describe('renderScrollComponent', () => {
+    /** Stands in for a list, and answers by offset as a list does. */
+    const FakeList = forwardRef<{ scrollToOffset: jest.Mock }, object>(
+      (_props, ref) => {
+        useImperativeHandle(
+          ref,
+          () => ({ scrollToOffset: scrollToOffset }),
+          []
+        );
+        return <View testID="fake-list" />;
+      }
+    );
+    FakeList.displayName = 'FakeList';
+    const scrollToOffset = jest.fn();
+    beforeEach(() => scrollToOffset.mockClear());
+
+    it('hands a list of your own the very props the built-in body gets', () => {
+      const received: { paddingTop: number }[] = [];
+      render(
+        <ParallaxHeader
+          testID="ph"
+          tabs={tabs}
+          headerHeight={300}
+          tabBarHeight={48}
+          renderScrollComponent={({ scrollProps }) => {
+            received.push(scrollProps.contentContainerStyle);
+            return (
+              <Animated.FlatList
+                {...scrollProps}
+                data={['a', 'b']}
+                keyExtractor={(item) => String(item)}
+                renderItem={({ item }) => <Text>{String(item)}</Text>}
+              />
+            );
+          }}
+        />
+      );
+      // The space the hero and the bar reserve, unchanged by the swap.
+      expect(received[0]?.paddingTop).toBe(348);
+      expect(screen.getByText('a')).toBeTruthy();
+      expect(screen.getByTestId('ph-scroll')).toBeTruthy();
+    });
+
+    it('gives out the empty state ready-sized for ListEmptyComponent', () => {
+      render(
+        <ParallaxHeader
+          testID="ph"
+          tabs={tabs}
+          headerHeight={300}
+          tabBarHeight={48}
+          emptyText="Nothing here"
+          renderScrollComponent={({ scrollProps, emptyComponent }) => (
+            <Animated.FlatList
+              {...scrollProps}
+              data={[]}
+              renderItem={() => null}
+              ListEmptyComponent={emptyComponent}
+            />
+          )}
+        />
+      );
+      // A list puts its own scaffolding between the scroller and the body,
+      // so the clipped body is the nearest View above it either way.
+      let body = screen.getByTestId('ph-scroll').parent;
+      while (body && `${body.type}` !== 'View') body = body.parent;
+      fireEvent(body!, 'layout', {
+        nativeEvent: { layout: { height: 800, width: 390, x: 0, y: 0 } },
+      });
+      expect(screen.getByText('Nothing here')).toBeTruthy();
+      const style = StyleSheet.flatten(
+        screen.getByTestId('ph-empty').props.style
+      );
+      expect(style.minHeight).toBe(452);
+    });
+
+    it('scrolls a list by offset through the imperative handle', () => {
+      const ref = createRef<ParallaxHeaderHandle>();
+      render(
+        <ParallaxHeader
+          ref={ref}
+          renderScrollComponent={({ scrollProps }) => (
+            <FakeList ref={scrollProps.ref} />
+          )}
+        />
+      );
+      ref.current?.scrollTo(400);
+      expect(scrollToOffset).toHaveBeenCalledWith({
+        offset: 400,
+        animated: true,
+      });
+      ref.current?.scrollToTop(false);
+      expect(scrollToOffset).toHaveBeenLastCalledWith({
+        offset: 0,
+        animated: false,
+      });
+    });
+
+    it('leaves children to the list once it owns the body', () => {
+      render(
+        <ParallaxHeader
+          header={<Text>Hero</Text>}
+          renderScrollComponent={() => <Text>List</Text>}
+        >
+          <Text>Body</Text>
+        </ParallaxHeader>
+      );
+      expect(screen.getByText('Hero')).toBeTruthy();
+      expect(screen.getByText('List')).toBeTruthy();
+      expect(screen.queryByText('Body')).toBeNull();
+    });
   });
 
   it('renders with no tabs at all', () => {

@@ -16,10 +16,15 @@ jest.mock('react-native/Libraries/Components/View/View', () => ({
   default: require('./jest/hostComponent')('View'),
 }));
 
-jest.mock('react-native/Libraries/Components/ScrollView/ScrollView', () => ({
-  __esModule: true,
-  default: require('./jest/hostComponent')('ScrollView'),
-}));
+// The stand-in carries the context the real ScrollView exposes: a
+// VirtualizedList reads it in __DEV__ to warn about nesting, and finds
+// `undefined.Consumer` without it.
+jest.mock('react-native/Libraries/Components/ScrollView/ScrollView', () => {
+  const React = require('react');
+  const ScrollView = require('./jest/hostComponent')('ScrollView');
+  ScrollView.Context = React.createContext(null);
+  return { __esModule: true, default: ScrollView };
+});
 
 // Image ships a per-platform file, so the mock has to name the resolved one.
 jest.mock('react-native/Libraries/Image/Image.ios', () => ({

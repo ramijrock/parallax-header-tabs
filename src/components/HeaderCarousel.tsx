@@ -92,6 +92,12 @@ export interface HeaderCarouselProps {
 
 const AUTOPLAY_INTERVAL = 4000;
 const MAX_DOTS = 5;
+/**
+ * Slides mounted either side of the current one. Enough for a swipe to land
+ * on a picture that is already drawn; everything further off is a blank of
+ * the same width until the reader gets near it.
+ */
+const SLIDE_BUFFER = 1;
 
 const toSource = (image: CarouselImage): ImageSourcePropType =>
   typeof image === 'string' ? { uri: image } : image;
@@ -151,15 +157,31 @@ export const HeaderCarousel = forwardRef<
     // under a finger.
     const interacting = useRef(false);
 
+    // The slides actually drawn as images. Only ever widened, and always one
+    // unbroken run, so a slide that has been seen stays decoded and any slide
+    // an animated jump or the loop's wrap passes over is already there.
+    const [drawn, setDrawn] = useState(() => ({
+      start: index - SLIDE_BUFFER,
+      end: index + SLIDE_BUFFER,
+    }));
+    const reveal = useCallback((target: number) => {
+      setDrawn((prev) => {
+        const start = Math.min(prev.start, target - SLIDE_BUFFER);
+        const end = Math.max(prev.end, target + SLIDE_BUFFER);
+        return start === prev.start && end === prev.end ? prev : { start, end };
+      });
+    }, []);
+
     const goTo = useCallback(
       (next: number, animated = true) => {
         if (count === 0) return;
         const target = Math.min(Math.max(next, 0), count - 1);
         indexRef.current = target;
         setIndex(target);
+        reveal(target);
         scrollRef.current?.scrollTo({ x: target * width, y: 0, animated });
       },
-      [count, width]
+      [count, reveal, width]
     );
 
     useImperativeHandle(ref, () => ({ scrollToIndex: goTo }), [goTo]);
@@ -184,8 +206,9 @@ export const HeaderCarousel = forwardRef<
         if (next === indexRef.current) return;
         indexRef.current = next;
         setIndex(next);
+        reveal(next);
       },
-      [width]
+      [reveal, width]
     );
 
     const onLayout = useCallback((event: LayoutChangeEvent) => {
@@ -286,16 +309,22 @@ export const HeaderCarousel = forwardRef<
             }}
             testID={testID ? `${testID}-strip` : undefined}
           >
-            {images.map((image, position) => (
+            {images.map((image, position) =>
               // Keyed by position on purpose: the slides are positional, so a
               // changed list should swap sources in place rather than remount.
-              <Image
-                key={position}
-                source={toSource(image)}
-                resizeMode={resizeMode}
-                style={slideStyle}
-              />
-            ))}
+              position >= drawn.start && position <= drawn.end ? (
+                <Image
+                  key={position}
+                  source={toSource(image)}
+                  resizeMode={resizeMode}
+                  style={slideStyle}
+                />
+              ) : (
+                // Holds the slide's place, so every offset stays where paging
+                // expects it, without decoding a picture nobody is near.
+                <View key={position} style={slideStyle} />
+              )
+            )}
           </ScrollView>
         )}
 
